@@ -7,7 +7,8 @@ title: tysonjh
 subtitle: making mistakes everyday
 author: tysonjh
 simple_search: http://google.com/search
-description: thoughts on software development
+description: "thoughts on software development"
+keywords: "software development, software engineering, scala, java, jvm, design patterns"
 
 # Default date format is "ordinal" (resulting in "July 22nd 2007")
 # You can customize the format as defined in
