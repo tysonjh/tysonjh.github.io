@@ -4,7 +4,7 @@
   <title><![CDATA[tysonjh]]></title>
   <link href="http://tysonjh.github.io/atom.xml" rel="self"/>
   <link href="http://tysonjh.github.io/"/>
-  <updated>2014-01-19T11:15:47-05:00</updated>
+  <updated>2014-01-29T13:31:51-05:00</updated>
   <id>http://tysonjh.github.io/</id>
   <author>
     <name><![CDATA[tysonjh]]></name>
@@ -12,6 +12,252 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Feature Toggling using Scala Quasiquote Macros]]></title>
+    <link href="http://tysonjh.github.io/blog/2014/01/29/scala-macros-and-quasiquotes/"/>
+    <updated>2014-01-29T02:36:36-05:00</updated>
+    <id>http://tysonjh.github.io/blog/2014/01/29/scala-macros-and-quasiquotes</id>
+    <content type="html"><![CDATA[<p>It&rsquo;s tough to dream up reasons to use macros in Scala. When our team began considering feature toggling
+to avoid experiencing another merging nightmare, it seemed like an excellent use case for a macro. A feature
+toggle is simply a construct that wraps a block of code, executing it if the feature is enabled.
+It is also referred to as kill switching, feature flipping, etc. If you are interested on learning more, check out
+<a href="http://martinfowler.com/bliki/FeatureToggle.html">this article</a> by Martin Fowler. According to Fowler&rsquo;s article
+the toggles we will be supporting are <em>business toggles</em>. Here is the basic idea,</p>
+
+<figure class='code'><figcaption><span>Toggle Flip Pseudocode</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='scala'><span class='line'><span class="k">if</span><span class="o">(</span><span class="n">featureEnabled</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>  <span class="n">doFeatureStuff</span><span class="o">()</span>
+</span><span class='line'><span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+</span><span class='line'>  <span class="n">doNotDoFeatureStuff</span><span class="o">()</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Scala macros are great for generating code, so it should be a simple matter to generate the conditional wrapper
+around a feature block.</p>
+
+<h3>Goals</h3>
+
+<ol>
+<li>Macro is simple to use</li>
+<li>Macro wraps feature code with a conditional</li>
+<li>Macro boolean condition implementation is extensible</li>
+</ol>
+
+
+<p>The third point is to facilitate different mechanisms for querying a feature&rsquo;s toggle state. The first use case
+for this feature will be writing hard wired scenarios of the boolean condition for testing purposes. Already I
+am working on a Redis backed boolean conditional that polls periodically for changes in feature flags.</p>
+
+<h3>Macros</h3>
+
+<p>Jumping right into the coding turned out to be the wrong approach. Macro programming in Scala is tough. It requires
+an intimate knowledge of how the AST is built and the symbols used. The documentation scratches the surface but leaves many
+questions unanswered. Finding examples online helped but I still struggled to massage them into a workable solution. Furthermore the
+examples I found used a lot of deprecated methods.</p>
+
+<p>I&rsquo;m not going to bother writing about directly manipulating the AST to create macros in Scala. At the end of
+this post exists a link section, in it you will find some great articles and examples of manipulating the AST.
+We are going to take a look at using <em>quasiquotes</em>.</p>
+
+<h3>Quasiquotes</h3>
+
+<p>Shipping with Scala 2.11 but supported in 2.10 with the <a href="http://docs.scala-lang.org/overviews/macros/paradise.html">macro paradise</a>
+plugin is <a href="http://docs.scala-lang.org/overviews/macros/quasiquotes.html">quasiquotes</a>. The basic idea is that they allow macros
+to be written similar to normal Scala code. Quasiquotes use the familiar concept of
+<a href="http://docs.scala-lang.org/overviews/core/string-interpolation.html">string interpolation</a>. <em>If you are new
+to writing macros start with quasiquotes!</em></p>
+
+<p>There is an excellent <a href="https://github.com/scalamacros/sbt-example-paradise">sbt-example-paradise</a> repository on github that will
+help get started.</p>
+
+<h4>Define the macro</h4>
+
+<figure class='code'><figcaption><span>Flipper Macro Definition</span><a href='https://github.com/tysonjh/dolphin/blob/master/src/main/scala/Dolphin.scala'>Source File</a></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='scala'><span class='line'><span class="k">trait</span> <span class="nc">Dolphin</span> <span class="o">{</span>
+</span><span class='line'>  <span class="k">def</span> <span class="n">flipper</span><span class="o">[</span><span class="kt">T</span><span class="o">](</span><span class="n">featureName</span><span class="k">:</span> <span class="kt">String</span><span class="o">,</span> <span class="n">config</span><span class="k">:</span> <span class="kt">QueryableConfig</span><span class="o">)</span>
+</span><span class='line'>                <span class="o">(</span><span class="n">fn</span><span class="k">:</span> <span class="o">=&gt;</span> <span class="n">T</span><span class="o">)</span><span class="k">:</span> <span class="kt">Unit</span> <span class="o">=</span> <span class="n">macro</span> <span class="nc">DolphinMacro</span><span class="o">.</span><span class="n">flipperImpl</span><span class="o">[</span><span class="kt">T</span><span class="o">]</span>
+</span><span class='line'> <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Nothing too magical happening here, the <code>macro</code> keyword is followed by the name of the static macro implementation method.</p>
+
+<h4>Implement the macro</h4>
+
+<figure class='code'><figcaption><span>Flipper Macro Implementation</span><a href='https://github.com/tysonjh/dolphin/blob/master/src/main/scala/Dolphin.scala'>Source File</a></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='scala'><span class='line'><span class="k">object</span> <span class="nc">DolphinMacro</span> <span class="o">{</span>
+</span><span class='line'>  <span class="k">def</span> <span class="n">flipperImpl</span><span class="o">[</span><span class="kt">T</span><span class="o">](</span><span class="n">c</span><span class="k">:</span> <span class="kt">Context</span><span class="o">)</span>
+</span><span class='line'>                    <span class="o">(</span><span class="n">featureName</span><span class="k">:</span> <span class="kt">c.Expr</span><span class="o">[</span><span class="kt">String</span><span class="o">],</span>
+</span><span class='line'>                     <span class="n">config</span><span class="k">:</span> <span class="kt">c.Expr</span><span class="o">[</span><span class="kt">QueryableConfig</span><span class="o">])</span>
+</span><span class='line'>                    <span class="o">(</span><span class="n">fn</span><span class="k">:</span> <span class="kt">c.Expr</span><span class="o">[</span><span class="kt">T</span><span class="o">])</span><span class="k">:</span> <span class="kt">c.Expr</span><span class="o">[</span><span class="kt">Unit</span><span class="o">]</span> <span class="k">=</span> <span class="o">{</span>
+</span><span class='line'>    <span class="k">import</span> <span class="nn">c.universe._</span>
+</span><span class='line'>    <span class="k">val</span> <span class="n">result</span> <span class="k">=</span> <span class="o">{</span>
+</span><span class='line'>      <span class="n">q</span><span class="s">&quot;&quot;&quot;</span>
+</span><span class='line'><span class="s">        if($config.isFeatureOn($featureName)) {</span>
+</span><span class='line'><span class="s">          $fn</span>
+</span><span class='line'><span class="s">        } else {}</span>
+</span><span class='line'><span class="s">      &quot;&quot;&quot;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>    <span class="n">c</span><span class="o">.</span><span class="nc">Expr</span><span class="o">[</span><span class="kt">Unit</span><span class="o">](</span><span class="n">result</span><span class="o">)</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This represents the implementation of the macro using quasiquotes. The import of <code>c.universe._</code> is common in most
+macro definitions. It provides many useful methods, for us it provides the <code>q</code> string interpolator on <em>line 8</em>.
+This is the start of the quasiquote. Appreciate how much it looks like plain old scala, compare it to any
+AST constructions on the <a href="http://docs.scala-lang.org/overviews/macros/overview.html">macro overview</a> page on the
+Scala macro documentation to understand how <em>awesome</em> this is.</p>
+
+<p>Conceptually we are printing out the symbols that construct the desired outcome and letting the macro paradise
+plugin handle the rest of the heavy lifting. Much easier to read isn&rsquo;t it? Compare it to the <code>showRaw</code> output of the
+AST we would need to build without quasiquotes in <code>res0</code>:</p>
+
+<figure class='code'><figcaption><span>The desired AST</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+</pre></td><td class='code'><pre><code class='scala'><span class='line'><span class="n">scala</span><span class="o">&gt;</span> <span class="k">import</span> <span class="nn">scala.reflect.runtime.</span><span class="o">{</span><span class="n">universe</span> <span class="k">=&gt;</span> <span class="n">u</span><span class="o">}</span>
+</span><span class='line'><span class="k">import</span> <span class="nn">scala.reflect.runtime.</span><span class="o">{</span><span class="n">universe</span><span class="k">=&gt;</span><span class="n">u</span><span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">scala</span><span class="o">&gt;</span> <span class="k">def</span> <span class="n">flipper</span><span class="o">(</span><span class="n">featureEnabled</span><span class="k">:</span> <span class="kt">Boolean</span><span class="o">)(</span><span class="n">doFeatureStuff</span><span class="k">:</span> <span class="o">=&gt;</span> <span class="nc">Unit</span><span class="o">)(</span><span class="n">doNotDoFeatureStuff</span><span class="k">:</span> <span class="o">=&gt;</span> <span class="nc">Unit</span><span class="o">)</span> <span class="k">=</span> <span class="o">{</span>
+</span><span class='line'>     <span class="o">|</span> <span class="k">if</span><span class="o">(</span><span class="n">featureEnabled</span><span class="o">){</span> <span class="n">doFeatureStuff</span> <span class="o">}</span>
+</span><span class='line'>     <span class="o">|</span> <span class="k">else</span> <span class="n">doNotDoFeatureStuff</span>
+</span><span class='line'>     <span class="o">|</span> <span class="o">}</span>
+</span><span class='line'><span class="n">flipper</span><span class="k">:</span> <span class="o">(</span><span class="kt">featureEnabled:</span> <span class="kt">Boolean</span><span class="o">)(</span><span class="kt">doFeatureStuff:</span> <span class="o">=&gt;</span> <span class="kt">Unit</span><span class="o">)(</span><span class="n">doNotDoFeatureStuff</span><span class="k">:</span> <span class="o">=&gt;</span> <span class="nc">Unit</span><span class="o">)</span><span class="nc">Unit</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">scala</span><span class="o">&gt;</span> <span class="k">val</span> <span class="n">expr</span> <span class="k">=</span> <span class="n">u</span> <span class="n">reify</span> <span class="o">(</span><span class="n">flipper</span> <span class="k">_</span><span class="o">)</span>
+</span><span class='line'><span class="n">expr</span><span class="k">:</span> <span class="kt">reflect.runtime.universe.Expr</span><span class="o">[</span><span class="kt">Boolean</span> <span class="k">=&gt;</span> <span class="o">((</span><span class="k">=&gt;</span> <span class="kt">Unit</span><span class="o">)</span> <span class="k">=&gt;</span> <span class="o">((</span><span class="k">=&gt;</span> <span class="kt">Unit</span><span class="o">)</span> <span class="k">=&gt;</span> <span class="kt">Unit</span><span class="o">))]</span> <span class="k">=</span>
+</span><span class='line'><span class="nc">Expr</span><span class="o">[</span><span class="kt">Boolean</span> <span class="k">=&gt;</span> <span class="o">((</span><span class="k">=&gt;</span> <span class="kt">Unit</span><span class="o">)</span> <span class="k">=&gt;</span> <span class="o">((</span><span class="k">=&gt;</span> <span class="kt">Unit</span><span class="o">)</span> <span class="k">=&gt;</span> <span class="kt">Unit</span><span class="o">))]</span> <span class="o">({((</span><span class="n">featureEnabled</span><span class="o">)</span> <span class="k">=&gt;</span> <span class="o">((</span><span class="n">doFeatureStuff</span><span class="o">)</span> <span class="k">=&gt;</span> <span class="o">((</span><span class="n">doNotDoFeatureStuff</span><span class="o">)</span> <span class="k">=&gt;</span> <span class="nc">$read</span><span class="o">.</span><span class="n">flipper</span><span class="o">(</span><span class="n">featureEnabled</span><span class="o">)(</span><span class="n">doFeatureStuff</span><span class="o">)(</span><span class="n">doNotDoFeatureStuff</span><span class="o">))))})</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">scala</span><span class="o">&gt;</span> <span class="n">u</span> <span class="n">showRaw</span> <span class="n">expr</span><span class="o">.</span><span class="n">tree</span>
+</span><span class='line'><span class="n">res0</span><span class="k">:</span> <span class="kt">String</span> <span class="o">=</span> <span class="nc">Block</span><span class="o">(</span><span class="nc">List</span><span class="o">(),</span> <span class="nc">Function</span><span class="o">(</span><span class="nc">List</span><span class="o">(</span><span class="nc">ValDef</span><span class="o">(</span><span class="nc">Modifiers</span><span class="o">(</span><span class="nc">PARAM</span> <span class="o">|</span> <span class="nc">SYNTHETIC</span><span class="o">),</span> <span class="n">newTermName</span><span class="o">(</span><span class="s">&quot;featureEnabled&quot;</span><span class="o">),</span> <span class="nc">TypeTree</span><span class="o">(),</span> <span class="nc">EmptyTree</span><span class="o">)),</span> <span class="nc">Function</span><span class="o">(</span><span class="nc">List</span><span class="o">(</span><span class="nc">ValDef</span><span class="o">(</span><span class="nc">Modifiers</span><span class="o">(</span><span class="nc">PARAM</span> <span class="o">|</span> <span class="nc">SYNTHETIC</span><span class="o">),</span> <span class="n">newTermName</span><span class="o">(</span><span class="s">&quot;doFeatureStuff&quot;</span><span class="o">),</span> <span class="nc">TypeTree</span><span class="o">(),</span> <span class="nc">EmptyTree</span><span class="o">)),</span> <span class="nc">Function</span><span class="o">(</span><span class="nc">List</span><span class="o">(</span><span class="nc">ValDef</span><span class="o">(</span><span class="nc">Modifiers</span><span class="o">(</span><span class="nc">PARAM</span> <span class="o">|</span> <span class="nc">SYNTHETIC</span><span class="o">),</span> <span class="n">newTermName</span><span class="o">(</span><span class="s">&quot;doNotDoFeatureStuff&quot;</span><span class="o">),</span> <span class="nc">TypeTree</span><span class="o">(),</span> <span class="nc">EmptyTree</span><span class="o">)),</span> <span class="nc">Apply</span><span class="o">(</span><span class="nc">Apply</span><span class="o">(</span><span class="nc">Apply</span><span class="o">(</span><span class="nc">Select</span><span class="o">(</span><span class="nc">Select</span><span class="o">(</span><span class="nc">Select</span><span class="o">(</span><span class="nc">Ident</span><span class="o">(</span><span class="nc">$line7</span><span class="o">.</span><span class="nc">$read</span><span class="o">),</span> <span class="n">newTermName</span><span class="o">(</span><span class="s">&quot;$iw&quot;</span><span class="o">)),</span> <span class="n">newTermName</span><span class="o">(</span><span class="s">&quot;$iw&quot;</span><span class="o">)),</span> <span class="n">newTermName</span><span class="o">(</span><span class="s">&quot;flipper&quot;</span><span class="o">)),</span> <span class="nc">List</span><span class="o">(</span><span class="nc">Ident</span><span class="o">(</span><span class="n">newTermName</span><span class="o">(</span><span class="s">&quot;featureEnabled&quot;</span><span class="o">)))),</span> <span class="nc">List</span><span class="o">(</span><span class="nc">Ident</span><span class="o">(</span><span class="n">newTermName</span><span class="o">(</span><span class="s">&quot;doFeatureStuff&quot;</span><span class="o">)))),</span> <span class="nc">List</span><span class="o">(</span><span class="nc">Ident</span><span class="o">(</span><span class="n">newTermName</span><span class="o">(</span><span class="s">&quot;doNotDoFeatureStuff&quot;</span><span class="o">))))))))</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>A more accurate way according to Imran Rashid&rsquo;s great post on <a href="http://imranrashid.com/posts/learning-scala-macros/">Learning Scala Macros</a> is to let the
+scalac compiler do it for you (below). Though I still prefer quasiquotes to this!</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='scala'><span class='line'><span class="n">scalac</span> <span class="o">-</span><span class="nc">Xplugin</span> <span class="n">macro</span><span class="o">-</span><span class="n">paradise_2</span><span class="o">.</span><span class="mf">10.2</span><span class="o">-</span><span class="mf">2.0</span><span class="o">.</span><span class="mi">0</span><span class="o">-</span><span class="nc">SNAPSHOT</span><span class="o">.</span><span class="n">jar</span> <span class="o">-</span><span class="n">deprecation</span> <span class="o">-</span><span class="nc">Xprint</span><span class="k">:</span><span class="kt">parser</span> <span class="kt">-Ystop-after:parser</span> <span class="kt">-Yshow-trees-compact</span> <span class="kt">*.scala</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h4>Test the macro</h4>
+
+<figure class='code'><figcaption><span>Flipper Macro Tests</span><a href='https://github.com/tysonjh/dolphin/blob/master/src/test/scala/DolphinSpec.scala'>Source File</a></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+</pre></td><td class='code'><pre><code class='scala'><span class='line'><span class="k">class</span> <span class="nc">DolphinSpec</span> <span class="k">extends</span> <span class="nc">FunSpec</span> <span class="k">with</span> <span class="nc">Dolphin</span> <span class="o">{</span>
+</span><span class='line'>  <span class="k">def</span> <span class="n">featureAlwaysOnConfig</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">QueryableConfig</span> <span class="o">{</span>
+</span><span class='line'>    <span class="k">def</span> <span class="n">isFeatureOn</span><span class="o">(</span><span class="n">name</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span><span class="k">:</span> <span class="kt">Boolean</span> <span class="o">=</span> <span class="kc">true</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">def</span> <span class="n">featureAlwaysOffConfig</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">QueryableConfig</span> <span class="o">{</span>
+</span><span class='line'>    <span class="k">def</span> <span class="n">isFeatureOn</span><span class="o">(</span><span class="n">name</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span><span class="k">:</span> <span class="kt">Boolean</span> <span class="o">=</span> <span class="kc">false</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">describe</span><span class="o">(</span><span class="s">&quot;Flipper&quot;</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="n">it</span><span class="o">(</span><span class="s">&quot;should execute function if feature is on&quot;</span><span class="o">){</span>
+</span><span class='line'>      <span class="k">var</span> <span class="n">cnt</span> <span class="k">=</span> <span class="mi">0</span>
+</span><span class='line'>      <span class="n">flipper</span><span class="o">(</span><span class="s">&quot;a&quot;</span><span class="o">,</span> <span class="n">featureAlwaysOnConfig</span><span class="o">){</span><span class="n">cnt</span> <span class="k">=</span> <span class="n">cnt</span> <span class="o">+</span> <span class="mi">1</span><span class="o">}</span>
+</span><span class='line'>      <span class="n">assert</span><span class="o">(</span><span class="n">cnt</span> <span class="o">==</span> <span class="mi">1</span><span class="o">)</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">it</span><span class="o">(</span><span class="s">&quot;should not execute function if feature is off&quot;</span><span class="o">){</span>
+</span><span class='line'>      <span class="k">var</span> <span class="n">cnt</span> <span class="k">=</span> <span class="mi">0</span>
+</span><span class='line'>      <span class="n">flipper</span><span class="o">(</span><span class="s">&quot;a&quot;</span><span class="o">,</span> <span class="n">featureAlwaysOffConfig</span><span class="o">){</span><span class="n">cnt</span> <span class="k">=</span> <span class="n">cnt</span> <span class="o">+</span> <span class="mi">1</span><span class="o">}</span>
+</span><span class='line'>      <span class="n">assert</span><span class="o">(</span><span class="n">cnt</span> <span class="o">==</span> <span class="mi">0</span><span class="o">)</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'><span class="o">}</span>      
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This is how the macro can be tested, again nothing special here. An interesting detail to note is that in the
+macro definition we have a call by name parameter <code>fn: =&gt; T</code>, but in this implementation of the macro we have
+the parameter <code>fn: c.Expr[T]</code> which appears to be call by value. The tests clearly show that the call by name
+parameter is only evaluated by name. Attempting to change the implementation to <code>fn: c.Expr[=&gt; T]</code> or <code>fn: =&gt; c.Expr[T]</code>
+causes a compilation error.</p>
+
+<p>The limitation is that one may only inline <code>fn</code> and not invoke it, at least until
+Scala 2.11 where <code>fn: c.Tree</code> may be used as the implementation parameter (<a href="https://issues.scala-lang.org/browse/SI-5778">see here</a>).</p>
+
+<h3>Summary</h3>
+
+<p>Quasiquotes are a welcomed addition to the macro scene. They make writing macros more accessible by eliminating the
+necessity for deep AST knowledge before one gets started. The code in this post is part of
+the <a href="https://github.com/tysonjh/dolphin">Dolphin</a> library for feature toggling in Scala.</p>
+
+<h3>Links</h3>
+
+<ul>
+<li><a href="http://www.scottlogic.com/blog/2013/06/05/scala-macros-part-1.html">Adventures with Scala Macros</a></li>
+<li><a href="https://gist.github.com/travisbrown/4234441">Simple macro-based scala example</a></li>
+<li><a href="http://docs.scala-lang.org/overviews/macros/overview.html">Scala Macros</a></li>
+<li><a href="http://docs.scala-lang.org/overviews/macros/quasiquotes.html">Quasiquotes</a></li>
+<li><a href="http://stackoverflow.com/questions/11055210/whats-the-easiest-way-to-use-reify-get-an-ast-of-an-expression-in-scala">Use reify to get AST of expression</a></li>
+<li><a href="http://imranrashid.com/posts/learning-scala-macros/">Learning Scala Macros</a></li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Hello Octopress]]></title>

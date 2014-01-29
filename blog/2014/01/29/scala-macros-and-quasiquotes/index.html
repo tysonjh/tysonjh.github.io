@@ -5,14 +5,14 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>tysonjh</title>
+  <title>Feature Toggling using Scala Quasiquote Macros - tysonjh</title>
   <meta name="author" content="tysonjh">
   
   
-  <meta name="description" content="thoughts on software development" />
+  <meta name="description" content="A discussion of Scala macros and quasiquotes to facilitate feature toggling" />
 
   
-  <meta name="keywords" content="software development, software engineering, scala, java, jvm, design patterns">
+  <meta name="keywords" content="scala, macros, quasiquotes, feature toggle, kill switch">
 
   <!-- http://t.co/dKP3o1e -->
   <meta name="HandheldFriendly" content="True">
@@ -20,7 +20,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://tysonjh.github.io">
+  <link rel="canonical" href="http://tysonjh.github.io/blog/2014/01/29/scala-macros-and-quasiquotes">
   <link href="/favicon.png" rel="icon">
   <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
   <link href="/atom.xml" rel="alternate" title="tysonjh" type="application/atom+xml">
@@ -78,15 +78,12 @@
 </nav>
   <div id="main">
     <div id="content">
-      <div class="blog-index">
+      <div>
+<article class="hentry" role="article">
   
-  
-  
-    <article>
-      
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/01/29/scala-macros-and-quasiquotes/">Feature Toggling Using Scala Quasiquote Macros</a></h1>
+      <h1 class="entry-title">Feature Toggling Using Scala Quasiquote Macros</h1>
     
     
       <p class="meta">
@@ -109,7 +106,7 @@
   </header>
 
 
-  <div class="entry-content"><p>It&rsquo;s tough to dream up reasons to use macros in Scala. When our team began considering feature toggling
+<div class="entry-content"><p>It&rsquo;s tough to dream up reasons to use macros in Scala. When our team began considering feature toggling
 to avoid experiencing another merging nightmare, it seemed like an excellent use case for a macro. A feature
 toggle is simply a construct that wraps a block of code, executing it if the feature is enabled.
 It is also referred to as kill switching, feature flipping, etc. If you are interested on learning more, check out
@@ -348,22 +345,16 @@ the <a href="https://github.com/tysonjh/dolphin">Dolphin</a> library for feature
 </ul>
 
 </div>
-  
-  
 
 
-    </article>
-  
-  
-    <article>
+  <footer>
+    <p class="meta">
       
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/01/18/hello-octopress/">Hello Octopress</a></h1>
-    
-    
-      <p class="meta">
-        
+  
+
+<span class="byline author vcard">Posted by <span class="fn">tysonjh</span></span>
+
+      
 
 
 
@@ -375,27 +366,43 @@ the <a href="https://github.com/tysonjh/dolphin">Dolphin</a> library for feature
   
 
 
-<time datetime="2014-01-18T11:56:19-05:00" pubdate data-updated="true">Jan 18<span>th</span>, 2014</time>
-        
-      </p>
+<time datetime="2014-01-29T02:36:36-05:00" pubdate data-updated="true">Jan 29<span>th</span>, 2014</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/macros/'>Macros</a>, <a class='category' href='/blog/categories/scala/'>Scala</a>
+  
+</span>
+
+
+    </p>
     
-  </header>
-
-
-  <div class="entry-content"><p>This is a POC for migrating my blog to Jekyll. I&rsquo;m going to be focussing on technical content, more specifically <code>software development</code>.</p>
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://tysonjh.github.io/blog/2014/01/29/scala-macros-and-quasiquotes/" data-via="tysonjh" data-counturl="http://tysonjh.github.io/blog/2014/01/29/scala-macros-and-quasiquotes/" >Tweet</a>
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+    <div class="fb-like" data-send="true" data-width="450" data-show-faces="false"></div>
+  
 </div>
-  
-  
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2014/01/18/hello-octopress/" title="Previous Post: Hello Octopress">&laquo; Hello Octopress</a>
+      
+      
+    </p>
+  </footer>
+</article>
 
 
-    </article>
-  
-  <div class="pagination">
-    
-    <a href="/blog/archives">Blog Archives</a>
-    
-  </div>
 </div>
+
 <aside class="sidebar">
   
     <section>
@@ -416,7 +423,7 @@ the <a href="https://github.com/tysonjh/dolphin">Dolphin</a> library for feature
 <section>
   <h1>GitHub Repos</h1>
   <ul id="gh_repos">
-    <li class="loading">Status updating&#8230;</li>
+    <li class="loading">Status updating...</li>
   </ul>
   
   <a href="https://github.com/tysonjh">@tysonjh</a> on GitHub
@@ -457,6 +464,7 @@ the <a href="https://github.com/tysonjh/dolphin">Dolphin</a> library for feature
 
   
 </aside>
+
 
     </div>
   </div>
