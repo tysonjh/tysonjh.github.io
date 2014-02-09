@@ -134,7 +134,7 @@
 <span class='line-number'>2</span>
 <span class='line-number'>3</span>
 </pre></td><td class='code'><pre><code class='scala'><span class='line'><span class="k">val</span> <span class="n">params</span><span class="k">:</span> <span class="kt">Iterable</span><span class="o">[</span><span class="kt">Name</span><span class="o">]</span> <span class="k">=</span> <span class="n">decl</span><span class="o">.</span><span class="n">collect</span> <span class="o">{</span>
-</span><span class='line'>  <span class="k">case</span> <span class="n">param</span> <span class="k">if</span> <span class="n">param</span><span class="o">.</span><span class="n">isTerm</span> <span class="o">&amp;&amp;</span> <span class="n">param</span><span class="o">.</span><span class="n">asTerm</span><span class="o">.</span><span class="n">isCaseAccessor</span> <span class="k">=&gt;</span> <span class="n">field</span><span class="o">.</span><span class="n">name</span>
+</span><span class='line'>  <span class="k">case</span> <span class="n">param</span> <span class="k">if</span> <span class="n">param</span><span class="o">.</span><span class="n">isMethod</span> <span class="o">&amp;&amp;</span> <span class="n">param</span><span class="o">.</span><span class="n">asMethod</span><span class="o">.</span><span class="n">isCaseAccessor</span> <span class="k">=&gt;</span> <span class="n">field</span><span class="o">.</span><span class="n">name</span>
 </span><span class='line'><span class="o">}</span>
 </span></code></pre></td></tr></table></div></figure>
 
