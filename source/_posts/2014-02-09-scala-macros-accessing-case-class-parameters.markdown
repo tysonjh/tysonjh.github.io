@@ -4,8 +4,8 @@ title: "Scala Macros: accessing case class parameters"
 date: 2014-02-09 00:05:21 -0500
 comments: true
 categories: [Scala, Macros]
-keywords: scala, macros, quasiquotes, feature toggle, kill switch
-description: "A discussion of Scala macros and quasiquotes to facilitate feature toggling"
+keywords: scala, macros, quasiquotes, case class, fields
+description: "How to access case class parameters with Scala Macros"
 ---
 
 Gaining access to a case class' constructor parameters within a macro implementation was not obvious at first. One approach is
