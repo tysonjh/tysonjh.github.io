@@ -31,7 +31,7 @@ A simple `collect` and the right partial function and presto,
 
 ```scala
 val params: Iterable[Name] = decl.collect { 
-  case param if param.isTerm && param.asTerm.isCaseAccessor => field.name 
+  case param if param.isMethod && param.asMethod.isCaseAccessor => field.name 
 }
 ```
 
