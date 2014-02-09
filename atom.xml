@@ -4,7 +4,7 @@
   <title><![CDATA[tysonjh]]></title>
   <link href="http://tysonjh.github.io/atom.xml" rel="self"/>
   <link href="http://tysonjh.github.io/"/>
-  <updated>2014-01-29T13:31:51-05:00</updated>
+  <updated>2014-02-09T00:22:03-05:00</updated>
   <id>http://tysonjh.github.io/</id>
   <author>
     <name><![CDATA[tysonjh]]></name>
@@ -12,6 +12,48 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Scala Macros: accessing case class parameters]]></title>
+    <link href="http://tysonjh.github.io/blog/2014/02/09/scala-macros-accessing-case-class-parameters/"/>
+    <updated>2014-02-09T00:05:21-05:00</updated>
+    <id>http://tysonjh.github.io/blog/2014/02/09/scala-macros-accessing-case-class-parameters</id>
+    <content type="html"><![CDATA[<p>Gaining access to a case class&#8217; constructor parameters within a macro implementation was not obvious at first. One approach is
+ to make use of the <code>WeakTypeTag</code>. Consider the example macro implementation with the following signature,</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='scala'><span class='line'><span class="k">def</span> <span class="n">macroImpl</span><span class="o">[</span><span class="kt">A:</span> <span class="kt">c.WeakTypeTag</span><span class="o">](</span><span class="n">c</span><span class="k">:</span> <span class="kt">Context</span><span class="o">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>To gain access to the <code>Type</code> of <code>A</code>,</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='scala'><span class='line'><span class="k">val</span> <span class="n">tpe</span><span class="k">:</span> <span class="kt">Type</span> <span class="o">=</span> <span class="n">weakTypeOf</span><span class="o">[</span><span class="kt">A</span><span class="o">]</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The trait <code>Type</code> has a method <code>declarations</code> that returns a <code>MemberScope</code> which is essentially an <code>Iterable[Symbol]</code> collection. The <code>Symbol</code> is of interest, for it contains useful information about anything in Scala that can be assigned a name.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='scala'><span class='line'><span class="k">val</span> <span class="n">decl</span><span class="k">:</span> <span class="kt">MemberScope</span>  <span class="o">=</span> <span class="n">tpe</span><span class="o">.</span><span class="n">declarations</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>A simple <code>collect</code> and the right partial function and presto,</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='scala'><span class='line'><span class="k">val</span> <span class="n">params</span><span class="k">:</span> <span class="kt">Iterable</span><span class="o">[</span><span class="kt">Name</span><span class="o">]</span> <span class="k">=</span> <span class="n">decl</span><span class="o">.</span><span class="n">collect</span> <span class="o">{</span>
+</span><span class='line'>  <span class="k">case</span> <span class="n">param</span> <span class="k">if</span> <span class="n">param</span><span class="o">.</span><span class="n">isTerm</span> <span class="o">&amp;&amp;</span> <span class="n">param</span><span class="o">.</span><span class="n">asTerm</span><span class="o">.</span><span class="n">isCaseAccessor</span> <span class="k">=&gt;</span> <span class="n">field</span><span class="o">.</span><span class="n">name</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p><code>params</code> contains the iterable collection of the case class parameter names.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Feature Toggling using Scala Quasiquote Macros]]></title>

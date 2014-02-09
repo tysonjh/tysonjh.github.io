@@ -5,14 +5,14 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>Hello Octopress - tysonjh</title>
+  <title>Scala Macros: accessing case class parameters - tysonjh</title>
   <meta name="author" content="tysonjh">
   
   
-  <meta name="description" content="thoughts on software development" />
+  <meta name="description" content="A discussion of Scala macros and quasiquotes to facilitate feature toggling" />
 
   
-  <meta name="keywords" content="software development, software engineering, scala, java, jvm, design patterns">
+  <meta name="keywords" content="scala, macros, quasiquotes, feature toggle, kill switch">
 
   <!-- http://t.co/dKP3o1e -->
   <meta name="HandheldFriendly" content="True">
@@ -20,7 +20,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://tysonjh.github.io/blog/2014/01/18/hello-octopress">
+  <link rel="canonical" href="http://tysonjh.github.io/blog/2014/02/09/scala-macros-accessing-case-class-parameters">
   <link href="/favicon.png" rel="icon">
   <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
   <link href="/atom.xml" rel="alternate" title="tysonjh" type="application/atom+xml">
@@ -83,7 +83,7 @@
   
   <header>
     
-      <h1 class="entry-title">Hello Octopress</h1>
+      <h1 class="entry-title">Scala Macros: Accessing Case Class Parameters</h1>
     
     
       <p class="meta">
@@ -99,14 +99,47 @@
   
 
 
-<time datetime="2014-01-18T11:56:19-05:00" pubdate data-updated="true">Jan 18<span>th</span>, 2014</time>
+<time datetime="2014-02-09T00:05:21-05:00" pubdate data-updated="true">Feb 9<span>th</span>, 2014</time>
         
       </p>
     
   </header>
 
 
-<div class="entry-content"><p>This is a POC for migrating my blog to Jekyll. I&rsquo;m going to be focussing on technical content, more specifically <code>software development</code>.</p>
+<div class="entry-content"><p>Gaining access to a case class&#8217; constructor parameters within a macro implementation was not obvious at first. One approach is
+ to make use of the <code>WeakTypeTag</code>. Consider the example macro implementation with the following signature,</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='scala'><span class='line'><span class="k">def</span> <span class="n">macroImpl</span><span class="o">[</span><span class="kt">A:</span> <span class="kt">c.WeakTypeTag</span><span class="o">](</span><span class="n">c</span><span class="k">:</span> <span class="kt">Context</span><span class="o">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>To gain access to the <code>Type</code> of <code>A</code>,</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='scala'><span class='line'><span class="k">val</span> <span class="n">tpe</span><span class="k">:</span> <span class="kt">Type</span> <span class="o">=</span> <span class="n">weakTypeOf</span><span class="o">[</span><span class="kt">A</span><span class="o">]</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The trait <code>Type</code> has a method <code>declarations</code> that returns a <code>MemberScope</code> which is essentially an <code>Iterable[Symbol]</code> collection. The <code>Symbol</code> is of interest, for it contains useful information about anything in Scala that can be assigned a name.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='scala'><span class='line'><span class="k">val</span> <span class="n">decl</span><span class="k">:</span> <span class="kt">MemberScope</span>  <span class="o">=</span> <span class="n">tpe</span><span class="o">.</span><span class="n">declarations</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>A simple <code>collect</code> and the right partial function and presto,</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='scala'><span class='line'><span class="k">val</span> <span class="n">params</span><span class="k">:</span> <span class="kt">Iterable</span><span class="o">[</span><span class="kt">Name</span><span class="o">]</span> <span class="k">=</span> <span class="n">decl</span><span class="o">.</span><span class="n">collect</span> <span class="o">{</span>
+</span><span class='line'>  <span class="k">case</span> <span class="n">param</span> <span class="k">if</span> <span class="n">param</span><span class="o">.</span><span class="n">isTerm</span> <span class="o">&amp;&amp;</span> <span class="n">param</span><span class="o">.</span><span class="n">asTerm</span><span class="o">.</span><span class="n">isCaseAccessor</span> <span class="k">=&gt;</span> <span class="n">field</span><span class="o">.</span><span class="n">name</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p><code>params</code> contains the iterable collection of the case class parameter names.</p>
 </div>
 
 
@@ -129,12 +162,12 @@
   
 
 
-<time datetime="2014-01-18T11:56:19-05:00" pubdate data-updated="true">Jan 18<span>th</span>, 2014</time>
+<time datetime="2014-02-09T00:05:21-05:00" pubdate data-updated="true">Feb 9<span>th</span>, 2014</time>
       
 
 <span class="categories">
   
-    <a class='category' href='/blog/categories/general/'>General</a>
+    <a class='category' href='/blog/categories/macros/'>Macros</a>, <a class='category' href='/blog/categories/scala/'>Scala</a>
   
 </span>
 
@@ -143,7 +176,7 @@
     
       <div class="sharing">
   
-  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://tysonjh.github.io/blog/2014/01/18/hello-octopress/" data-via="tysonjh" data-counturl="http://tysonjh.github.io/blog/2014/01/18/hello-octopress/" >Tweet</a>
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://tysonjh.github.io/blog/2014/02/09/scala-macros-accessing-case-class-parameters/" data-via="tysonjh" data-counturl="http://tysonjh.github.io/blog/2014/02/09/scala-macros-accessing-case-class-parameters/" >Tweet</a>
   
   
   <div class="g-plusone" data-size="medium"></div>
@@ -156,8 +189,8 @@
     
     <p class="meta">
       
+        <a class="basic-alignment left" href="/blog/2014/01/29/scala-macros-and-quasiquotes/" title="Previous Post: Feature Toggling using Scala Quasiquote Macros">&laquo; Feature Toggling using Scala Quasiquote Macros</a>
       
-        <a class="basic-alignment right" href="/blog/2014/01/29/scala-macros-and-quasiquotes/" title="Next Post: Feature Toggling using Scala Quasiquote Macros">Feature Toggling using Scala Quasiquote Macros &raquo;</a>
       
     </p>
   </footer>

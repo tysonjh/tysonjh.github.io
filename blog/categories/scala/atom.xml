@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Scala | tysonjh]]></title>
   <link href="http://tysonjh.github.io/blog/categories/scala/atom.xml" rel="self"/>
   <link href="http://tysonjh.github.io/"/>
-  <updated>2014-01-29T13:31:51-05:00</updated>
+  <updated>2014-02-09T00:22:03-05:00</updated>
   <id>http://tysonjh.github.io/</id>
   <author>
     <name><![CDATA[tysonjh]]></name>
@@ -12,6 +12,42 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Scala Macros: accessing case class parameters]]></title>
+    <link href="http://tysonjh.github.io/blog/2014/02/09/scala-macros-accessing-case-class-parameters/"/>
+    <updated>2014-02-09T00:05:21-05:00</updated>
+    <id>http://tysonjh.github.io/blog/2014/02/09/scala-macros-accessing-case-class-parameters</id>
+    <content type="html"><![CDATA[<p>Gaining access to a case class' constructor parameters within a macro implementation was not obvious at first. One approach is
+ to make use of the <code>WeakTypeTag</code>. Consider the example macro implementation with the following signature,</p>
+
+<p><code>scala
+def macroImpl[A: c.WeakTypeTag](c: Context)
+</code></p>
+
+<p>To gain access to the <code>Type</code> of <code>A</code>,</p>
+
+<p><code>scala
+val tpe: Type = weakTypeOf[A]
+</code></p>
+
+<p>The trait <code>Type</code> has a method <code>declarations</code> that returns a <code>MemberScope</code> which is essentially an <code>Iterable[Symbol]</code> collection. The <code>Symbol</code> is of interest, for it contains useful information about anything in Scala that can be assigned a name.</p>
+
+<p><code>scala
+val decl: MemberScope  = tpe.declarations
+</code></p>
+
+<p>A simple <code>collect</code> and the right partial function and presto,</p>
+
+<p><code>scala
+val params: Iterable[Name] = decl.collect {
+  case param if param.isTerm &amp;&amp; param.asTerm.isCaseAccessor =&gt; field.name
+}
+</code></p>
+
+<p><code>params</code> contains the iterable collection of the case class parameter names.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Feature Toggling using Scala Quasiquote Macros]]></title>
