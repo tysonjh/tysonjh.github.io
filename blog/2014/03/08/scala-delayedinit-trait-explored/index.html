@@ -1,0 +1,609 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Scala DelayedInit Trait Explored - tysonjh</title>
+  <meta name="author" content="tysonjh">
+  
+  
+  <meta name="description" content="DelayedInit is a useful Trait but can cause frustrations in its subtleties" />
+
+  
+  <meta name="keywords" content="scala, delayedInit, trait, invocation order">
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://tysonjh.github.io/blog/2014/03/08/scala-delayedinit-trait-explored">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="tysonjh" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Fjalla+One' rel='stylesheet' type='text/css'>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-30501057-2']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body   class="collapse-sidebar sidebar-footer" >
+  <header role="banner"><hgroup>
+  <h1><a href="/">tysonjh</a></h1>
+  
+    <h2>making mistakes everyday</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:tysonjh.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/about/">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Scala DelayedInit Trait Explored</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-03-08T15:58:24-05:00" pubdate data-updated="true">Mar 8<span>th</span>, 2014</time>
+        
+         | <a href="#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>The App trait used for making easily executable code is a sales hook for those new to the Scala language. Put a &ldquo;Hello World!&rdquo; app from Scala beside a Java one and you&rsquo;ll notice among other things the lack of a <code>main</code> method from the former. Cool &ndash; look how succinct Scala is!</p>
+
+<p>The darker side of this nifty little trick is rather subtle. Especially because of the <a href="https://issues.scala-lang.org/browse/SI-4680">open major bug since 2.9.1</a>. This little guy caused me all sorts of problems when working with the awesome <a href="https://github.com/mDialog/smoke">Smoke</a> HTTP service library. Smoke makes use of the DelayedInit trait for initializing the server, a perfect use case.</p>
+
+<p>The Scaladoc for <a href="http://www.scala-lang.org/api/2.10.3/#scala.DelayedInit">DelayedInit</a> says that traits don&rsquo;t automagically benefit from inheriting from DelayedInit like a class or object would. Then it provides a nice example of how you can define your own delayedInit within a trait. In search of the <code>SI-4680</code> bug I performed a series of investigative scenarios, which I will discuss here.</p>
+
+<p>Examples are entirely based around traits, since that was my use case see the <a href="https://gist.github.com/tysonjh/9438697">full gist here</a></p>
+
+<h3>Test Traits</h3>
+
+<p>A simple trait that extended the DelayedInit trait, along with a couple others for mixins.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+</pre></td><td class='code'><pre><code class='scala'><span class='line'><span class="k">trait</span> <span class="nc">Stage1</span> <span class="k">extends</span> <span class="nc">DelayedInit</span> <span class="o">{</span>
+</span><span class='line'>  <span class="n">println</span><span class="o">(</span><span class="s">&quot;Stage1 constructor&quot;</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">override</span> <span class="k">def</span> <span class="n">delayedInit</span><span class="o">(</span><span class="n">x</span><span class="k">:</span> <span class="o">=&gt;</span> <span class="nc">Unit</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="n">println</span><span class="o">(</span><span class="s">&quot;Stage1 delayedInit before x&quot;</span><span class="o">)</span>
+</span><span class='line'>    <span class="n">x</span>
+</span><span class='line'>    <span class="n">println</span><span class="o">(</span><span class="s">&quot;Stage1 delayedInit after x&quot;</span><span class="o">)</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'><span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">trait</span> <span class="nc">Stage2</span> <span class="o">{</span>
+</span><span class='line'>  <span class="n">println</span><span class="o">(</span><span class="s">&quot;Stage2 constructor&quot;</span><span class="o">)</span>
+</span><span class='line'><span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">trait</span> <span class="nc">Stage3</span> <span class="o">{</span>
+</span><span class='line'>  <span class="n">println</span><span class="o">(</span><span class="s">&quot;Stage3 constructor&quot;</span><span class="o">)</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Then I mixed these traits together with various techniques. Some with regular mixins, some to mimick dependency injection with the cake pattern.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='scala'><span class='line'><span class="k">trait</span> <span class="nc">Stage123</span> <span class="k">extends</span> <span class="nc">Stage1</span> <span class="k">with</span> <span class="nc">Stage2</span> <span class="k">with</span> <span class="nc">Stage3</span> <span class="o">{</span>
+</span><span class='line'>  <span class="n">println</span><span class="o">(</span><span class="s">&quot;Stage123 constructor&quot;</span><span class="o">)</span>
+</span><span class='line'><span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">trait</span> <span class="nc">Stage1Di23</span> <span class="k">extends</span> <span class="nc">Stage1</span> <span class="o">{</span>
+</span><span class='line'>  <span class="k">this:</span> <span class="kt">Stage2</span> <span class="kt">with</span> <span class="kt">Stage3</span> <span class="o">=&gt;</span>
+</span><span class='line'>  <span class="n">println</span><span class="o">(</span><span class="s">&quot;Stage1Di23 constructor&quot;</span><span class="o">)</span>
+</span><span class='line'><span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">trait</span> <span class="nc">Stage12Di3</span> <span class="k">extends</span> <span class="nc">Stage1</span> <span class="k">with</span> <span class="nc">Stage2</span> <span class="o">{</span>
+</span><span class='line'>  <span class="k">this:</span> <span class="kt">Stage3</span> <span class="o">=&gt;</span>
+</span><span class='line'>  <span class="n">println</span><span class="o">(</span><span class="s">&quot;Stage12Di3 constructor&quot;</span><span class="o">)</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>SI-4680 Bug Example</h3>
+
+<p>Let&rsquo;s get this out of the way, regardless of the varying inheritance techniques used they all had the same result. Missing or empty initialization code in the instantiated trait results in the <code>delayedInit</code> method not being invoked.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='scala'><span class='line'><span class="cm">/*</span>
+</span><span class='line'><span class="cm">Stage1 constructor</span>
+</span><span class='line'><span class="cm">Stage2 constructor</span>
+</span><span class='line'><span class="cm">Stage3 constructor</span>
+</span><span class='line'><span class="cm">Stage123 constructor</span>
+</span><span class='line'><span class="cm">Main application constructor end</span>
+</span><span class='line'><span class="cm"> */</span>
+</span><span class='line'><span class="k">object</span> <span class="nc">Main123</span> <span class="k">extends</span> <span class="nc">App</span> <span class="o">{</span>
+</span><span class='line'>  <span class="n">println</span><span class="o">(</span><span class="s">&quot;Main application constructor start&quot;</span><span class="o">)</span>
+</span><span class='line'>  <span class="k">new</span> <span class="nc">Stage123</span> <span class="o">{}</span>
+</span><span class='line'>  <span class="n">println</span><span class="o">(</span><span class="s">&quot;Main application constructor end&quot;</span><span class="o">)</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The result of running this object is shown in the comments. All of the initializations of the various traits were executed, but the <code>delayedInit</code> method was never called! Note that it is not possible to instantiate a trait, there is no constructor. By providing <code>{}</code> we are providing a constructor and an anonymous class that subclasses the trait <code>Stage123</code>. This is the empty constructor that results in bug SI-4680.</p>
+
+<h3>SI-4680 Bug Workaround</h3>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+</pre></td><td class='code'><pre><code class='scala'><span class='line'><span class="cm">/*</span>
+</span><span class='line'><span class="cm">Main application constructor start</span>
+</span><span class='line'><span class="cm">Stage1 constructor</span>
+</span><span class='line'><span class="cm">Stage2 constructor</span>
+</span><span class='line'><span class="cm">Stage3 constructor</span>
+</span><span class='line'><span class="cm">Stage123 constructor</span>
+</span><span class='line'><span class="cm">Stage1 delayedInit before x</span>
+</span><span class='line'><span class="cm">Stage123 NonEmpty constructor</span>
+</span><span class='line'><span class="cm">Stage1 delayedInit after x</span>
+</span><span class='line'><span class="cm">Main application constructor end</span>
+</span><span class='line'><span class="cm"> */</span>
+</span><span class='line'><span class="k">object</span> <span class="nc">Main123NonEmpty</span> <span class="k">extends</span> <span class="nc">App</span> <span class="o">{</span>
+</span><span class='line'>  <span class="n">println</span><span class="o">(</span><span class="s">&quot;Main application constructor start&quot;</span><span class="o">)</span>
+</span><span class='line'>  <span class="k">new</span> <span class="nc">Stage123</span> <span class="o">{</span>
+</span><span class='line'>    <span class="n">println</span><span class="o">(</span><span class="s">&quot;Stage123 NonEmpty constructor&quot;</span><span class="o">)</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>  <span class="n">println</span><span class="o">(</span><span class="s">&quot;Main application constructor end&quot;</span><span class="o">)</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>In this example the constructor is populated with a <code>println</code> for illustrating the example but the constructor could be <code>{ { } }</code> or <code>{Unit}</code>, comments don&rsquo;t count.</p>
+
+<h3>Dependency Injection</h3>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+</pre></td><td class='code'><pre><code class='scala'><span class='line'><span class="k">trait</span> <span class="nc">Stage1Di23</span> <span class="k">extends</span> <span class="nc">Stage1</span> <span class="o">{</span>
+</span><span class='line'>  <span class="k">this:</span> <span class="kt">Stage2</span> <span class="kt">with</span> <span class="kt">Stage3</span> <span class="o">=&gt;</span>
+</span><span class='line'>  <span class="n">println</span><span class="o">(</span><span class="s">&quot;Stage1Di23 constructor&quot;</span><span class="o">)</span>
+</span><span class='line'><span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="cm">/*</span>
+</span><span class='line'><span class="cm">Main application constructor start</span>
+</span><span class='line'><span class="cm">Stage1 constructor</span>
+</span><span class='line'><span class="cm">Stage1Di23 constructor</span>
+</span><span class='line'><span class="cm">Stage2 constructor</span>
+</span><span class='line'><span class="cm">Stage3 constructor</span>
+</span><span class='line'><span class="cm">Stage1 delayedInit before x</span>
+</span><span class='line'><span class="cm">Stage1Di23 NonEmpty constructor</span>
+</span><span class='line'><span class="cm">Stage1 delayedInit after x</span>
+</span><span class='line'><span class="cm">Main application constructor end</span>
+</span><span class='line'><span class="cm"> */</span>
+</span><span class='line'><span class="k">object</span> <span class="nc">Main1Di23NonEmpty</span> <span class="k">extends</span> <span class="nc">App</span> <span class="o">{</span>
+</span><span class='line'>  <span class="n">println</span><span class="o">(</span><span class="s">&quot;Main application constructor start&quot;</span><span class="o">)</span>
+</span><span class='line'>  <span class="k">new</span> <span class="nc">Stage1Di23</span> <span class="k">with</span> <span class="nc">Stage2</span> <span class="k">with</span> <span class="nc">Stage3</span> <span class="o">{</span>
+</span><span class='line'>    <span class="n">println</span><span class="o">(</span><span class="s">&quot;Stage1Di23 NonEmpty constructor&quot;</span><span class="o">)</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>  <span class="n">println</span><span class="o">(</span><span class="s">&quot;Main application constructor end&quot;</span><span class="o">)</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>There are lots of great articles on DI in Scala, don&rsquo;t use this as one. What is interesting here is the order of execution. The body of our instantiated anonymous class of type <code>Stage1Di23 with Stage2 with Stage3</code> is executed within the <code>delayedInit</code> method now that it is not empty. I was surprised by the output, what I expected to see was <code>Stage1, Stage1Di23, Stage3, Stage2</code>, following the idea where traits are generally layered on from right to left. To better understand what is happening with the template evaluation, the <code>Stage2</code> trait has been mixed in as a base class instead of an injected dependency,</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+</pre></td><td class='code'><pre><code class='scala'><span class='line'><span class="k">trait</span> <span class="nc">Stage12Di3</span> <span class="k">extends</span> <span class="nc">Stage1</span> <span class="k">with</span> <span class="nc">Stage2</span> <span class="o">{</span>
+</span><span class='line'>  <span class="k">this:</span> <span class="kt">Stage3</span> <span class="o">=&gt;</span>
+</span><span class='line'>  <span class="n">println</span><span class="o">(</span><span class="s">&quot;Stage12Di3 constructor&quot;</span><span class="o">)</span>
+</span><span class='line'><span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="cm">/*</span>
+</span><span class='line'><span class="cm">Main application constructor start</span>
+</span><span class='line'><span class="cm">Stage1 constructor</span>
+</span><span class='line'><span class="cm">Stage2 constructor</span>
+</span><span class='line'><span class="cm">Stage12Di3 constructor</span>
+</span><span class='line'><span class="cm">Stage3 constructor</span>
+</span><span class='line'><span class="cm">Stage1 delayedInit before x</span>
+</span><span class='line'><span class="cm">Stage12Di3 NonEmpty constructor</span>
+</span><span class='line'><span class="cm">Stage1 delayedInit after x</span>
+</span><span class='line'><span class="cm">Main application constructor end</span>
+</span><span class='line'><span class="cm"> */</span>
+</span><span class='line'><span class="k">object</span> <span class="nc">Main12Di3NonEmpty</span> <span class="k">extends</span> <span class="nc">App</span> <span class="o">{</span>
+</span><span class='line'>  <span class="n">println</span><span class="o">(</span><span class="s">&quot;Main application constructor start&quot;</span><span class="o">)</span>
+</span><span class='line'>  <span class="k">new</span> <span class="nc">Stage12Di3</span> <span class="k">with</span> <span class="nc">Stage3</span> <span class="o">{</span>
+</span><span class='line'>    <span class="n">println</span><span class="o">(</span><span class="s">&quot;Stage12Di3 NonEmpty constructor&quot;</span><span class="o">)</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>  <span class="n">println</span><span class="o">(</span><span class="s">&quot;Main application constructor end&quot;</span><span class="o">)</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This clears things up a bit more. This is similar to the Example 5.1.1 from the Scala Specification,</p>
+
+<blockquote><p>Example 5.1.1 Consider the following class deﬁnitions:<br/>class Base extends Object {}<br/>trait Mixin extends Base {}<br/>object O extends Mixin {}<br/>In this case, the deﬁnition of O is expanded to:<br/>object O extends Base with Mixin {}</p><footer><strong>http://www.scala-lang.org/docu/files/ScalaReference.pdf Scala Specification</strong></footer></blockquote>
+
+
+<p>It would be nice to see the actual output from the compiler. The scalac <code>-print</code> option can do this and removes all Scala specific features and print to standard output. Now it&rsquo;s clear that first the superclass constructor of the anonymous class is evaluated. Followed by constructors of all base classes that are mixed in, in reverse order of the occurrence in linearization. Then the <code>delayedInit</code> method is called for each trait that extends the <code>DelayedInit</code> trait and implements the <code>delayedInit</code> method, first <code>App</code>, then <code>Stage1</code>.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='scala'><span class='line'><span class="k">final</span> <span class="k">class</span> <span class="nc">Test$$anon$1</span> <span class="k">extends</span> <span class="nc">Object</span> <span class="k">with</span> <span class="nc">Stage12Di3</span> <span class="k">with</span> <span class="nc">Stage3</span> <span class="o">{</span>
+</span><span class='line'>  <span class="k">override</span> <span class="k">def</span> <span class="n">delayedInit</span><span class="o">(</span><span class="n">x</span><span class="k">:</span> <span class="kt">Function0</span><span class="o">)</span><span class="k">:</span> <span class="kt">Unit</span> <span class="o">=</span> <span class="nc">Stage1$class</span><span class="o">.</span><span class="n">delayedInit</span><span class="o">(</span><span class="nc">Test$$anon$1</span><span class="o">.</span><span class="k">this</span><span class="o">,</span> <span class="n">x</span><span class="o">);</span>
+</span><span class='line'>  <span class="k">def</span> <span class="o">&lt;</span><span class="n">init</span><span class="o">&gt;()</span><span class="k">:</span> <span class="kt">anonymous</span> <span class="kt">class</span> <span class="kt">anon$1</span> <span class="o">=</span> <span class="o">{</span>
+</span><span class='line'>    <span class="nc">Test$$anon$1</span><span class="o">.</span><span class="k">super</span><span class="o">.&lt;</span><span class="n">init</span><span class="o">&gt;();</span>
+</span><span class='line'>    <span class="nc">Stage1$class</span><span class="o">.</span><span class="cm">/*Stage1$class*/</span><span class="nc">$init</span><span class="n">$</span><span class="o">(</span><span class="nc">Test$$anon$1</span><span class="o">.</span><span class="k">this</span><span class="o">);</span>
+</span><span class='line'>    <span class="nc">Stage2$class</span><span class="o">.</span><span class="cm">/*Stage2$class*/</span><span class="nc">$init</span><span class="n">$</span><span class="o">(</span><span class="nc">Test$$anon$1</span><span class="o">.</span><span class="k">this</span><span class="o">);</span>
+</span><span class='line'>    <span class="nc">Stage12Di3$class</span><span class="o">.</span><span class="cm">/*Stage12Di3$class*/</span><span class="nc">$init</span><span class="n">$</span><span class="o">(</span><span class="nc">Test$$anon$1</span><span class="o">.</span><span class="k">this</span><span class="o">);</span>
+</span><span class='line'>    <span class="nc">Stage3$class</span><span class="o">.</span><span class="cm">/*Stage3$class*/</span><span class="nc">$init</span><span class="n">$</span><span class="o">(</span><span class="nc">Test$$anon$1</span><span class="o">.</span><span class="k">this</span><span class="o">);</span>
+</span><span class='line'>    <span class="nc">Test$$anon$1</span><span class="o">.</span><span class="k">this</span><span class="o">.</span><span class="n">delayedInit</span><span class="o">(</span><span class="k">new</span> <span class="n">anonymous</span> <span class="k">class</span> <span class="nc">anon$1$delayedInit$body</span><span class="o">(</span><span class="nc">Test$$anon$1</span><span class="o">.</span><span class="k">this</span><span class="o">));</span>
+</span><span class='line'>    <span class="o">()</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>Cake Pattern (next post)</h3>
+
+<p>Next post I&rsquo;ll look into what happens with <code>delayedInit</code> when we use the cake pattern. Nothing new is expected since it is a similar approach to the dependency injection already explored. The only difference is that a Component trait wraps the implemented dependency we want to inject.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">tysonjh</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-03-08T15:58:24-05:00" pubdate data-updated="true">Mar 8<span>th</span>, 2014</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/scala/'>Scala</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://tysonjh.github.io/blog/2014/03/08/scala-delayedinit-trait-explored/" data-via="tysonjh" data-counturl="http://tysonjh.github.io/blog/2014/03/08/scala-delayedinit-trait-explored/" >Tweet</a>
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+    <div class="fb-like" data-send="true" data-width="450" data-show-faces="false"></div>
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2014/02/09/scala-macros-accessing-case-class-parameters/" title="Previous Post: Scala Macros: accessing case class parameters">&laquo; Scala Macros: accessing case class parameters</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/03/08/scala-delayedinit-trait-explored/">Scala DelayedInit Trait Explored</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/02/09/scala-macros-accessing-case-class-parameters/">Scala Macros: accessing case class parameters</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/01/29/scala-macros-and-quasiquotes/">Feature Toggling using Scala Quasiquote Macros</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/01/18/hello-octopress/">Hello Octopress</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/tysonjh">@tysonjh</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'tysonjh',
+            count: 5,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+<section class="googleplus">
+  <h1>
+    <a href="https://plus.google.com/tyson.j.hamilton?rel=author">
+      <img src="http://www.google.com/images/icons/ui/gprofile_button-32.png" width="32" height="32">
+      Google+
+    </a>
+  </h1>
+</section>
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - tysonjh -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a> | Themed with <a href="https://github.com/lucaslew/whitespace">Whitespace</a></span>
+</p>
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'tysonjh';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://tysonjh.github.io/blog/2014/03/08/scala-delayedinit-trait-explored/';
+        var disqus_url = 'http://tysonjh.github.io/blog/2014/03/08/scala-delayedinit-trait-explored/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+<div id="fb-root"></div>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) {return;}
+  js = d.createElement(s); js.id = id; js.async = true;
+  js.src = "//connect.facebook.net/en_US/all.js#appId=212934732101925&xfbml=1";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));</script>
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>
