@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Scala | tysonjh]]></title>
   <link href="http://tysonjh.github.io/blog/categories/scala/atom.xml" rel="self"/>
   <link href="http://tysonjh.github.io/"/>
-  <updated>2014-03-10T20:25:27-04:00</updated>
+  <updated>2014-03-10T20:27:33-04:00</updated>
   <id>http://tysonjh.github.io/</id>
   <author>
     <name><![CDATA[tysonjh]]></name>
@@ -18,13 +18,13 @@
     <link href="http://tysonjh.github.io/blog/2014/03/08/scala-delayedinit-trait-explored/"/>
     <updated>2014-03-08T15:58:24-05:00</updated>
     <id>http://tysonjh.github.io/blog/2014/03/08/scala-delayedinit-trait-explored</id>
-    <content type="html"><![CDATA[<p>The App trait used for making easily executable code is a sales hook for those new to the Scala language. Put a &ldquo;Hello World!&rdquo; app from Scala beside a Java one and you&rsquo;ll notice among other things the lack of a <code>main</code> method from the former. Cool &ndash; look how succinct Scala is!</p>
+    <content type="html"><![CDATA[<p>The App trait is often used for making easily executable code. It is a display of how elegant the language can be. A hook for those new to the Scala language. Put a &ldquo;Hello World!&rdquo; app from Scala beside a Java app and you&rsquo;ll notice among other things the lack of a <code>main</code> method from the former. Cool &ndash; look how succinct Scala is!</p>
 
-<p>The darker side of this nifty little trick is rather subtle. Especially because of the <a href="https://issues.scala-lang.org/browse/SI-4680">open major bug since 2.9.1</a>. This little guy caused me all sorts of problems when working with the awesome <a href="https://github.com/mDialog/smoke">Smoke</a> HTTP service library. Smoke makes use of the DelayedInit trait for initializing the server, a perfect use case.</p>
+<p>The darker side of this nifty feature is rather subtle. Especially until the <a href="https://issues.scala-lang.org/browse/SI-4680">open major bug since 2.9.1</a> is resolved. I came across it while using the <a href="https://github.com/mDialog/smoke">Smoke</a> HTTP service library and mixing it into a trait. Smoke extends the DelayedInit trait for initializing the server before executing the body of the main App object. It&rsquo;s a nice use case.</p>
 
-<p>The Scaladoc for <a href="http://www.scala-lang.org/api/2.10.3/#scala.DelayedInit">DelayedInit</a> says that traits don&rsquo;t automagically benefit from inheriting from DelayedInit like a class or object would. Then it provides a nice example of how you can define your own delayedInit within a trait. In search of the <code>SI-4680</code> bug I performed a series of investigative scenarios, which I will discuss here.</p>
+<p>The Scaladoc for <a href="http://www.scala-lang.org/api/2.10.3/#scala.DelayedInit">DelayedInit</a> explicitly states that traits don&rsquo;t automagically benefit from mixing in DelayedInit like a class or object would. The doc has an example of how to define the  delayedInit method within a trait that will be executed as expected. In search of the <code>SI-4680</code> bug I performed a series of investigative scenarios, which are presented here.</p>
 
-<p>Examples are entirely based around traits, since that was my use case see the <a href="https://gist.github.com/tysonjh/9438697">full gist here</a></p>
+<p>The gist is <a href="https://gist.github.com/tysonjh/9438697">here</a>.</p>
 
 <h3>Test Traits</h3>
 
@@ -53,7 +53,7 @@ println("Stage1 delayedInit after x")
 }
 ```</p>
 
-<p>Then I mixed these traits together with various techniques. Some with regular mixins, some to mimick dependency injection with the cake pattern.</p>
+<p>Traits can be mixed in using several different techniques. Here are some with regular mixins and some with dependency injection.</p>
 
 <p>``` scala
 trait Stage123 extends Stage1 with Stage2 with Stage3 {
@@ -73,7 +73,7 @@ trait Stage123 extends Stage1 with Stage2 with Stage3 {
 
 <h3>SI-4680 Bug Example</h3>
 
-<p>Let&rsquo;s get this out of the way, regardless of the varying inheritance techniques used they all had the same result. Missing or empty initialization code in the instantiated trait results in the <code>delayedInit</code> method not being invoked.</p>
+<p>A trait with The empty initialization code in the instantiated trait results in the <code>delayedInit</code> method not being invoked.</p>
 
 <p><code>scala
 /*
@@ -205,10 +205,6 @@ Test$$anon$1.this.delayedInit(new anonymous class anon$1$delayedInit$body(Test$$
 <p>  }
 }
 ```</p>
-
-<h3>Cake Pattern (next post)</h3>
-
-<p>Next post I&rsquo;ll look into what happens with <code>delayedInit</code> when we use the cake pattern. Nothing new is expected since it is a similar approach to the dependency injection already explored. The only difference is that a Component trait wraps the implemented dependency we want to inject.</p>
 ]]></content>
   </entry>
   
