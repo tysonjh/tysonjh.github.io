@@ -8,13 +8,13 @@ keywords: scala, delayedInit, trait, invocation order
 description: "DelayedInit is a useful Trait but can cause frustrations in its subtleties"
 ---
 
-The App trait used for making easily executable code is a sales hook for those new to the Scala language. Put a "Hello World!" app from Scala beside a Java one and you'll notice among other things the lack of a `main` method from the former. Cool - look how succinct Scala is!
+The App trait is often used for making easily executable code. It is a display of how elegant the language can be. A hook for those new to the Scala language. Put a "Hello World!" app from Scala beside a Java app and you'll notice among other things the lack of a `main` method from the former. Cool - look how succinct Scala is!
 
-The darker side of this nifty little trick is rather subtle. Especially because of the [open major bug since 2.9.1](https://issues.scala-lang.org/browse/SI-4680). This little guy caused me all sorts of problems when working with the awesome [Smoke](https://github.com/mDialog/smoke) HTTP service library. Smoke makes use of the DelayedInit trait for initializing the server, a perfect use case.
+The darker side of this nifty feature is rather subtle. Especially until the [open major bug since 2.9.1](https://issues.scala-lang.org/browse/SI-4680) is resolved. I came across it while using the [Smoke](https://github.com/mDialog/smoke) HTTP service library and mixing it into a trait. Smoke extends the DelayedInit trait for initializing the server before executing the body of the main App object. It's a nice use case.
 
-The Scaladoc for [DelayedInit](http://www.scala-lang.org/api/2.10.3/#scala.DelayedInit) says that traits don't automagically benefit from inheriting from DelayedInit like a class or object would. Then it provides a nice example of how you can define your own delayedInit within a trait. In search of the `SI-4680` bug I performed a series of investigative scenarios, which I will discuss here.
+The Scaladoc for [DelayedInit](http://www.scala-lang.org/api/2.10.3/#scala.DelayedInit) explicitly states that traits don't automagically benefit from mixing in DelayedInit like a class or object would. The doc has an example of how to define the  delayedInit method within a trait that will be executed as expected. In search of the `SI-4680` bug I performed a series of investigative scenarios, which are presented here.
 
-Examples are entirely based around traits, since that was my use case see the [full gist here](https://gist.github.com/tysonjh/9438697)
+The gist is [here](https://gist.github.com/tysonjh/9438697).
 
 ### Test Traits
 
@@ -40,7 +40,7 @@ trait Stage3 {
 }
 ```
 
-Then I mixed these traits together with various techniques. Some with regular mixins, some to mimick dependency injection with the cake pattern.
+Traits can be mixed in using several different techniques. Here are some with regular mixins and some with dependency injection.
 
 ``` scala
 trait Stage123 extends Stage1 with Stage2 with Stage3 {
@@ -60,7 +60,7 @@ trait Stage12Di3 extends Stage1 with Stage2 {
 
 ### SI-4680 Bug Example
 
-Let's get this out of the way, regardless of the varying inheritance techniques used they all had the same result. Missing or empty initialization code in the instantiated trait results in the `delayedInit` method not being invoked.
+A trait with The empty initialization code in the instantiated trait results in the `delayedInit` method not being invoked.
 
 ``` scala
 /*
@@ -188,7 +188,4 @@ final class Test$$anon$1 extends Object with Stage12Di3 with Stage3 {
 }
 ```
 
-### Cake Pattern (next post)
-
-Next post I'll look into what happens with `delayedInit` when we use the cake pattern. Nothing new is expected since it is a similar approach to the dependency injection already explored. The only difference is that a Component trait wraps the implemented dependency we want to inject.
 
