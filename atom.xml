@@ -2,10 +2,10 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
 
   <title><![CDATA[tysonjh]]></title>
-  <link href="http://tysonjh.github.io/atom.xml" rel="self"/>
-  <link href="http://tysonjh.github.io/"/>
-  <updated>2014-03-10T20:27:33-04:00</updated>
-  <id>http://tysonjh.github.io/</id>
+  <link href="http://tysonjh.com/atom.xml" rel="self"/>
+  <link href="http://tysonjh.com/"/>
+  <updated>2014-04-05T10:26:24-04:00</updated>
+  <id>http://tysonjh.com/</id>
   <author>
     <name><![CDATA[tysonjh]]></name>
     
@@ -15,9 +15,9 @@
   
   <entry>
     <title type="html"><![CDATA[Scala DelayedInit Trait Explored]]></title>
-    <link href="http://tysonjh.github.io/blog/2014/03/08/scala-delayedinit-trait-explored/"/>
+    <link href="http://tysonjh.com/blog/2014/03/08/scala-delayedinit-trait-explored/"/>
     <updated>2014-03-08T15:58:24-05:00</updated>
-    <id>http://tysonjh.github.io/blog/2014/03/08/scala-delayedinit-trait-explored</id>
+    <id>http://tysonjh.com/blog/2014/03/08/scala-delayedinit-trait-explored</id>
     <content type="html"><![CDATA[<p>The App trait is often used for making easily executable code. It is a display of how elegant the language can be. A hook for those new to the Scala language. Put a &ldquo;Hello World!&rdquo; app from Scala beside a Java app and you&rsquo;ll notice among other things the lack of a <code>main</code> method from the former. Cool &ndash; look how succinct Scala is!</p>
 
 <p>The darker side of this nifty feature is rather subtle. Especially until the <a href="https://issues.scala-lang.org/browse/SI-4680">open major bug since 2.9.1</a> is resolved. I came across it while using the <a href="https://github.com/mDialog/smoke">Smoke</a> HTTP service library and mixing it into a trait. Smoke extends the DelayedInit trait for initializing the server before executing the body of the main App object. It&rsquo;s a nice use case.</p>
@@ -316,9 +316,9 @@
   
   <entry>
     <title type="html"><![CDATA[Scala Macros: accessing case class parameters]]></title>
-    <link href="http://tysonjh.github.io/blog/2014/02/09/scala-macros-accessing-case-class-parameters/"/>
+    <link href="http://tysonjh.com/blog/2014/02/09/scala-macros-accessing-case-class-parameters/"/>
     <updated>2014-02-09T00:05:21-05:00</updated>
-    <id>http://tysonjh.github.io/blog/2014/02/09/scala-macros-accessing-case-class-parameters</id>
+    <id>http://tysonjh.com/blog/2014/02/09/scala-macros-accessing-case-class-parameters</id>
     <content type="html"><![CDATA[<p>Gaining access to a case class&#8217; constructor parameters within a macro implementation was not obvious at first. One approach is
  to make use of the <code>WeakTypeTag</code>. Consider the example macro implementation with the following signature,</p>
 
@@ -358,9 +358,9 @@
   
   <entry>
     <title type="html"><![CDATA[Feature Toggling using Scala Quasiquote Macros]]></title>
-    <link href="http://tysonjh.github.io/blog/2014/01/29/scala-macros-and-quasiquotes/"/>
+    <link href="http://tysonjh.com/blog/2014/01/29/scala-macros-and-quasiquotes/"/>
     <updated>2014-01-29T02:36:36-05:00</updated>
-    <id>http://tysonjh.github.io/blog/2014/01/29/scala-macros-and-quasiquotes</id>
+    <id>http://tysonjh.com/blog/2014/01/29/scala-macros-and-quasiquotes</id>
     <content type="html"><![CDATA[<p>It&rsquo;s tough to dream up reasons to use macros in Scala. When our team began considering feature toggling
 to avoid experiencing another merging nightmare, it seemed like an excellent use case for a macro. A feature
 toggle is simply a construct that wraps a block of code, executing it if the feature is enabled.
@@ -604,9 +604,9 @@ the <a href="https://github.com/tysonjh/dolphin">Dolphin</a> library for feature
   
   <entry>
     <title type="html"><![CDATA[Hello Octopress]]></title>
-    <link href="http://tysonjh.github.io/blog/2014/01/18/hello-octopress/"/>
+    <link href="http://tysonjh.com/blog/2014/01/18/hello-octopress/"/>
     <updated>2014-01-18T11:56:19-05:00</updated>
-    <id>http://tysonjh.github.io/blog/2014/01/18/hello-octopress</id>
+    <id>http://tysonjh.com/blog/2014/01/18/hello-octopress</id>
     <content type="html"><![CDATA[<p>This is a POC for migrating my blog to Jekyll. I&rsquo;m going to be focussing on technical content, more specifically <code>software development</code>.</p>
 ]]></content>
   </entry>

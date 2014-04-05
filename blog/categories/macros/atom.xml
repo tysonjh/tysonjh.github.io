@@ -2,10 +2,10 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
 
   <title><![CDATA[Category: Macros | tysonjh]]></title>
-  <link href="http://tysonjh.github.io/blog/categories/macros/atom.xml" rel="self"/>
-  <link href="http://tysonjh.github.io/"/>
-  <updated>2014-03-10T20:27:33-04:00</updated>
-  <id>http://tysonjh.github.io/</id>
+  <link href="http://tysonjh.com/blog/categories/macros/atom.xml" rel="self"/>
+  <link href="http://tysonjh.com/"/>
+  <updated>2014-04-05T10:26:24-04:00</updated>
+  <id>http://tysonjh.com/</id>
   <author>
     <name><![CDATA[tysonjh]]></name>
     
@@ -15,9 +15,9 @@
   
   <entry>
     <title type="html"><![CDATA[Scala Macros: accessing case class parameters]]></title>
-    <link href="http://tysonjh.github.io/blog/2014/02/09/scala-macros-accessing-case-class-parameters/"/>
+    <link href="http://tysonjh.com/blog/2014/02/09/scala-macros-accessing-case-class-parameters/"/>
     <updated>2014-02-09T00:05:21-05:00</updated>
-    <id>http://tysonjh.github.io/blog/2014/02/09/scala-macros-accessing-case-class-parameters</id>
+    <id>http://tysonjh.com/blog/2014/02/09/scala-macros-accessing-case-class-parameters</id>
     <content type="html"><![CDATA[<p>Gaining access to a case class' constructor parameters within a macro implementation was not obvious at first. One approach is
  to make use of the <code>WeakTypeTag</code>. Consider the example macro implementation with the following signature,</p>
 
@@ -51,9 +51,9 @@ val params: Iterable[Name] = decl.collect {
   
   <entry>
     <title type="html"><![CDATA[Feature Toggling using Scala Quasiquote Macros]]></title>
-    <link href="http://tysonjh.github.io/blog/2014/01/29/scala-macros-and-quasiquotes/"/>
+    <link href="http://tysonjh.com/blog/2014/01/29/scala-macros-and-quasiquotes/"/>
     <updated>2014-01-29T02:36:36-05:00</updated>
-    <id>http://tysonjh.github.io/blog/2014/01/29/scala-macros-and-quasiquotes</id>
+    <id>http://tysonjh.com/blog/2014/01/29/scala-macros-and-quasiquotes</id>
     <content type="html"><![CDATA[<p>It&rsquo;s tough to dream up reasons to use macros in Scala. When our team began considering feature toggling
 to avoid experiencing another merging nightmare, it seemed like an excellent use case for a macro. A feature
 toggle is simply a construct that wraps a block of code, executing it if the feature is enabled.
