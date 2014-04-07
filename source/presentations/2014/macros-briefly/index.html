@@ -4,10 +4,10 @@
 	<head>
 		<meta charset="utf-8">
 
-		<title>reveal.js - The HTML Presentation Framework</title>
+		<title>Scala Macros Briefly</title>
 
-		<meta name="description" content="A framework for easily creating beautiful presentations using HTML">
-		<meta name="author" content="Hakim El Hattab">
+		<meta name="description" content="A brief introduction to Scala Macros">
+		<meta name="author" content="Tyson J Hamilton">
 
 		<meta name="apple-mobile-web-app-capable" content="yes" />
 		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -43,24 +43,228 @@
 			<!-- Any section element inside of this container is displayed as a slide -->
 			<div class="slides">
 				<section>
-					<h1>Reveal.js</h1>
-					<h3>HTML Presentations Made Easy</h3>
+					<h1>Scala Macros</h1>
+					<h3>A brief introduction</h3>
 					<p>
-						<small>Created by <a href="http://hakim.se">Hakim El Hattab</a> / <a href="http://twitter.com/hakimel">@hakimel</a></small>
+						<small>Created by <a href="http://tysonjh.com">Tyson J Hamilton</a> / <a href="http://twitter.com/tysonjh">@tysonjh</a></small>
 					</p>
 				</section>
 
 				<section>
-					<h2>Heads Up</h2>
-					<p>
-						reveal.js is a framework for easily creating beautiful presentations using HTML. You'll need a browser with
-						support for CSS 3D transforms to see it in its full glory.
-					</p>
+					<h2>Use Cases</h2>
+					<h4>Macros make the impossible/difficult possible!</h4>
+					<ul>
+						<li>Code generation</li>
+						<li>Static checking</li>
+						<li>DSLs</li>
+					</ul>
+
+					<aside class="notes">
+						Great examples of these include Play's JSON macros, Shapeless, Slick.
+					</aside>
+				</section>
+
+
+
+
+				<!--
+						Section of Macro Examples
+				-->
+				<section data-transition="linear" data-background="#99CC66" data-background-transition="slide">
+					<!--
+							Play Framework JSON Materialization
+					-->
+					<section>
+						<h2>JSON - Play Framework</h2>
+						<p>
+							Materializing JSON into a case class
+						</p>
+						<pre><code data-trim contenteditable style="font-size: 18px; margin-top: 20px; background-color: #339933">
+case class Cat(name: String, age: Int, owner: Option[String])
+						</code></pre>
+						<p>
+							using the <code>Reads</code> macro
+						</p>
+
+						<pre><code data-trim contenteditable style="font-size: 18px; margin-top: 20px; background-color: #339933">
+implicit val catReads = Json.Reads[Cat]
+						</code></pre>
+
+						<p>
+							to generate the following at compile time
+						</p>
+
+						<pre><code data-trim contenteditable style="font-size: 18px; margin-top: 20px; background-color: #339933">
+implicit val catReads = (
+    (__ \ "name").read[String] and
+    (__ \ "age").read[Int] and
+    (__ \ "owner").readNullable[String])(Cat)
+						</code></pre>
+
+						<aside class="notes">
+							An example of code generation.
+							It may look like a trivial gain, especially if you look at the source code required to create this macro. However,
+							it becomes a SAVIOR when dealing with many case classes with lots of members. Plus - did you have to write the macro? (=
+						</aside>
+					</section>
+
+					<section>
+							<h2>PAINFUL AST manipulation</h2>
+							...
+					</section>
+				</section>
+				<!--
+						Akka Typed Channels (Static Checking) #0E2E36
+				-->
+				<section data-transition="linear" data-background="#0E2E36" data-background-transition="slide">
+					<section>
+							<h2>Akka Typed Channels</h2>
+							<p>
+								The <code>!</code> method takes an <code>Any</code> and actor references are untyped.
+								This diminishes the advantages of type-safety.
+							</p>
+							<aside class="notes">
+								An example of static type checking.
+							</aside>
+					</section>
+
+					<section>
+						The following passes compilation without warning.
+						<pre><code data-trim contenteditable style="font-size: 18px; margin-top: 20px; background-color: #333333">
+trait Request
+case class Command(msg: String) extends Request
+
+trait Reply
+case object CommandSuccess extends Reply
+case class CommandFailure(msg: String) extends Reply
+						</code></pre>
+						<pre><code data-trim contenteditable style="font-size: 18px; margin-top: 20px; background-color: #333333">
+val requestProcessor = someActor
+requestProcessor ! Command
+						</code></pre>
+					</section>
+
+					<section>
+						<p>
+							Use macros to perform static type checking!
+						</p>
+
+						<pre><code data-trim contenteditable style="font-size: 18px; margin-top: 20px; background-color: #333333">
+val requestProcessor = new ChannelRef[(Request, Reply) :+: TNil](someActor)
+requestProcessor <-!- Command // this does not compile
+						</code></pre>
+
+						<p>
+							The <code><-!-</code> macro extracts the <code>(Request, Reply)</code> from the actor and validates
+							it against the argument.
+						</p>
+					</section>
+				</section>
+				<!--
+						Async DSL SIP-22 #72D0EB
+				-->
+				<section data-transition="linear" data-background="#990000" data-background-transition="slide">
+						<section>
+							<h2>Scala Async DSL</h2>
+							<p>
+						  	<a href="http://docs.scala-lang.org/sips/pending/async.html">SIP-22 - Async</a> is introducing a macro to simplify
+								asynchronous and concurrent programming in Scala.
+							</p>
+							<pre><code data-trim contenteditable style="font-size: 18px; margin-top: 20px; background-color: #003333">
+def async[T](body: => T): Future[T]
+def await[T](future: Future[T]): T
+							</code></pre>
+							<aside class="notes">
+								This SIP was introduced by Philipp Haller and Jason Zaugg and is quite formidable. Prior to macro expansion,
+								the body is first put into "A-normal Form" (see SIP for explanation).
+
+								The body is then processed further, first lifting vars vals and defs into the state machine object. Then breaks
+								the code into chunks, which complete with a branching result or a continuation handler. The macro then
+								synthesizes the state machine class and then it's apply() method is called to begin the computation.
+							</aside>
+						</section>
+
+						<section>
+							Using the Play framework, let's define some boilerplate to illustrate the power of this macro
+							<pre><code data-trim contenteditable style="font-size: 18px; margin-top: 20px; background-color: #003333">
+val futureDOY: Future[Response] =
+WS.url("http://api.day-of-year/today").get
+
+val futureDaysLeft: Future[Response] =
+WS.url("http://api.days-left/today").get
+
+def nameOfMonth(num: Int): Future[String] = ...
+
+val date = “““(\d+)/(\d+)“““.r
+							</code></pre>
+						</section>
+
+						<section>
+							Wouldn't this be nice?
+							<pre><code data-trim contenteditable style="font-size: 18px; margin-top: 20px; background-color: #003333">
+async {
+  await(futureDOY).body match {
+    case date(month, day) =>
+      Ok(s“It’s ${await(nameOfMonth(month.toInt))}!“)
+    case _ =>
+      NotFound(“Not a date, mate!“)
+  }
+}
+							</code></pre>
+						</section>
+
+						<section>
+							Instead of this!
+							<pre><code data-trim contenteditable style="font-size: 18px; margin-top: 20px; background-color: #003333">
+for { doyResponse <- futureDOY
+      dayOfYear = doyResponse.body
+      response <- dayOfYear match {
+        case date(month, day) =>
+          for (name <- nameOfMonth(month.toInt))
+          yield Ok(s“It’s $name!“)
+        case _ =>
+          Future.successful(NotFound(“Not a...“))
+      }
+} yield response
+							</code></pre>
+							<aside class="notes">
+								Scala Future has map and flatMap so using them as generators in a for comprehension works nicely.
+								Here are some problems with this code,
+								- to extract dayOfYear, we are forced to introduce the name doyResponse, a useless intermediate result
+								- to await the completion of the future returned by nameOfMonth, we are forced to use a nested for-comprehension
+								- the nested for-comprehension forces us to bind the result of nameOfMonth to name, a useless intermediate variable
+								- the nested for-comprehension forces us to introduce an artificial future that’s completed upon creation
+								- the artificial future introduces additional overhead and garbage
+								- finally, the use of for-yield might obscure the actual domain which is asynchronous computations with non-blocking awaits
+							</aside>
+						</section>
+				</section>
+
+
+				<section>
+					<h2>EXPERIMENTAL</h2>
+					<p>Tentatively scheduled stable for 2.12</p>
+					<ul>
+						<li>2.10 - def macros</li>
+						<li>2.10 - implicit macros</li>
+						<li>2.10 - macro annotations*</li>
+						<li>2.10 - quasiquotes*</li>
+						<li>2.11 - quasiquotes</li>
+						<li>2.11 - macro bundles</li>
+						<li>2.11 - extractor macros</li>
+					</ul>
+					<small>* <a href="https://github.com/scalamacros/paradise">macro paradise</a> plugin required</small>
+				</section>
+
+				<section>
+					<h4>For now</h4>
+					<h2>Macro Paradise Plugin</h2>
 
 					<aside class="notes">
 						Oh hey, these are some notes. They'll be hidden in your presentation, but you can see them if you open the speaker notes window (hit 's' on your keyboard).
 					</aside>
 				</section>
+
 
 				<!-- Example of nested vertical slides -->
 				<section>
