@@ -168,14 +168,14 @@ requestProcessor <-!- Command // this does not compile
 							<h2>Scala Async DSL</h2>
 							<p>
 						  	<a href="http://docs.scala-lang.org/sips/pending/async.html">SIP-22 - Async</a> is introducing a macro to simplify
-								asynchronous and concurrent programming in Scala.
+								asynchronous and concurrent programming in Scala with an internal DSL.
 							</p>
 							<pre><code data-trim contenteditable style="font-size: 18px; margin-top: 20px; background-color: #003333">
 def async[T](body: => T): Future[T]
 def await[T](future: Future[T]): T
 							</code></pre>
 							<aside class="notes">
-								This SIP was introduced by Philipp Haller and Jason Zaugg and is quite formidable. Prior to macro expansion,
+								This SIP was introduced by Philipp Haller and Jason Zaugg. Prior to macro expansion,
 								the body is first put into "A-normal Form" (see SIP for explanation).
 
 								The body is then processed further, first lifting vars vals and defs into the state machine object. Then breaks
@@ -264,6 +264,43 @@ for { doyResponse <- futureDOY
 						Oh hey, these are some notes. They'll be hidden in your presentation, but you can see them if you open the speaker notes window (hit 's' on your keyboard).
 					</aside>
 				</section>
+
+
+
+				<!--
+						Resources
+				-->				
+				<section>
+					<h2>Useful resources</h2>
+					<ul>
+						<li><a href="http://docs.scala-lang.org/overviews/macros/usecases.html">Scala Documentation: Macros</a></li>
+						<li><a href="http://scalamacros.org/paperstalks/2013-11-25-ScalaMacrosPoster.pdf">Scala Macros (pdf)</a> - E.Burmako, D.Shabalin, M.Odersky</li>
+						<li><a href="http://scalamacros.org/paperstalks/2013-12-02-WhatAreMacrosGoodFor.pdf">What Are Macros Good For</a> - E.Burmako</li>
+						<li><a href="http://den.sh/quasiquotes.html">Quasiquote Guide</a> - D.Shabalin</li>
+						<li><a href="http://letitcrash.com/post/40198993865/makkros-first-step-towards-typed-channels">Makkros: First step towards Typed Channels</a> - R.Kuhn</li>
+					</ul>
+					<aside class="notes">
+						Oh hey, these are some notes. They'll be hidden in your presentation, but you can see them if you open the speaker notes window (hit 's' on your keyboard).
+					</aside>
+				</section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 				<!-- Example of nested vertical slides -->
