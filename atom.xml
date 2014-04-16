@@ -4,7 +4,7 @@
   <title><![CDATA[tysonjh]]></title>
   <link href="http://tysonjh.com/atom.xml" rel="self"/>
   <link href="http://tysonjh.com/"/>
-  <updated>2014-04-06T20:39:19-04:00</updated>
+  <updated>2014-04-16T01:03:55-04:00</updated>
   <id>http://tysonjh.com/</id>
   <author>
     <name><![CDATA[tysonjh]]></name>
@@ -599,6 +599,100 @@ the <a href="https://github.com/tysonjh/dolphin">Dolphin</a> library for feature
 <li><a href="http://imranrashid.com/posts/learning-scala-macros/">Learning Scala Macros</a></li>
 </ul>
 
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Dependency Injection with Scala]]></title>
+    <link href="http://tysonjh.com/blog/2014/01/19/dependency-injection-with-scala/"/>
+    <updated>2014-01-19T11:56:43-05:00</updated>
+    <id>http://tysonjh.com/blog/2014/01/19/dependency-injection-with-scala</id>
+    <content type="html"><![CDATA[<p>Dependency injection (DI) is a design pattern that has been described in depth both in print and on the web, my goal is
+to illustrate an example of how I used it in practice with satisfying results. If you would like to learn more about DI,
+do what I did and look to an expert in your area of interest, <a href="http://jonasboner.com/2008/10/06/real-world-scala-dependency-injection-di/">Real-World Scala: Dependency Injection (DI)</a> by Jonas Bonér is a great read, in fact I question the worth of this post after reading it again.</p>
+
+<p><a href="http://stackoverflow.com/a/1638961/1274818">John Munsch</a> provides an elegant and nostalgic explanation,</p>
+
+<blockquote><p>When you go and get things out of the refrigerator for yourself, you can cause problems. You might leave the door open, you might get something Mommy or Daddy doesn&rsquo;t want you to have. You might even be looking for something we don&rsquo;t even have or which has expired.</p>
+
+<p>What you should be doing is stating a need, &ldquo;I need something to drink with lunch,&rdquo; and then we will make sure you have something when you sit down to eat.</p></blockquote>
+
+<h2>Example Use Case: NOSQL data cleanup</h2>
+
+<ul>
+<li><a href="http://github.com/tysonjh/">Source using Cake Pattern</a></li>
+<li><a href="http://github.com/tysonjh/">Source using Macwire</a></li>
+</ul>
+
+
+<h4>Description</h4>
+
+<p>There is a data issue in a production NOSQL database, we need to clean it up. Anything touching data in production makes me sweat. Generally with NOSQL you design your schema to support specific queries since joins must be done by the application or through creative indexing. When an unexpected need to join unrelated data arises things get interesting. So we must proceed with caution.</p>
+
+<h4>Triggers</h4>
+
+<p>An administrator will execute the script from the command line.</p>
+
+<h4>Actors</h4>
+
+<ol>
+<li>A database access object that provides a domain specific view into our database</li>
+<li>A database client library that provides access to the operations of a database</li>
+<li>A command line interface for controlling the flow of the application</li>
+</ol>
+
+
+<h4>Preconditions</h4>
+
+<ol>
+<li>The database is available</li>
+<li>The data model is a key/value store that <em>for all keys:K there exists a value:V where K:String &ndash;> V:Int</em></li>
+</ol>
+
+
+<h4>Goals</h4>
+
+<ol>
+<li>All keys are capitalized and trimmed of white space</li>
+<li>The lowest value of any keys that differ only by case and whitespace are kept, all others are removed</li>
+</ol>
+
+
+<h3>Design Considerations</h3>
+
+<p>You should be screaming TDD right now. This means unit tests and lots of them, which means we need a mock/stub implementation of our database. I&rsquo;ve written two different implementations of the DI pattern, the first using Cake as discussed by Jonas Bonér and the next using Macwire. The source files for both examples are provided as links above. I&rsquo;m providing a Macwire example because I wanted to try it out, in practice I used the cake pattern in this instance.</p>
+
+<h3>Implementation Highlights</h3>
+
+<p>Here is a snippet of the <code>DatabaseComponent</code> trait we use for accessing the database,</p>
+
+<blockquote><p>insert DatabaseComponent snippet</p></blockquote>
+
+<p>Notice we leave the <code>client</code> value as an abstract member, of type <code>DatabaseClient</code> which is a nested trait. This is what we will be using to inject different implementations of the <code>client</code>. The nested trait simply cleans up the namespace so all of those methods (get, set, exist, delete) are only visible from within the <code>DatabaseClient</code> object as we would expect, it also provides us with a greater flexibility for where we instantiate our <code>client</code> object.</p>
+
+<h4>Components</h4>
+
+<p>Below are the three implementations of the <code>DatabaseComponent</code>, the real <code>Database</code>, the write simulated <code>DatabaseWriteSimulator</code> and the test <code>TestDatabase</code> respectively</p>
+
+<blockquote><p>database snippet</p></blockquote>
+
+<p>The <code>DatabaseWriteSimulator</code> turned out to be quite useful and simply prints operations that alter the database instead of actually performing them. It was a nice way to test the script on real data in an environment.</p>
+
+<blockquote><p>simulator snippet</p></blockquote>
+
+<p>The <code>TestDatabase</code> is very similar to the <code>Database</code> trait which fully implements a <code>DatabaseComponent</code>, it could easily be replaced using a mocking framework.</p>
+
+<blockquote><p>test snippet</p></blockquote>
+
+<h4>Wiring Components with Modules</h4>
+
+<p>Modules are one way to wire the various traits together as required by DI. This really lets me visualize the whole cake pattern, I like to picture the class names as the icing and Scala symbols like <code>class</code>, <code>extends</code> and <code>with</code> as the cake.</p>
+
+<p><code>object Production extends ProductDaoComponent with Database</code></p>
+
+<p>Stack those words up starting at the bottom with <code>object</code>, moving right ending with <code>Database</code> on top. Methods and members at the bottom of the cake get overridden or implemented by things higher up in the cake. As long as you have no unimplemented methods or instantiated members you&rsquo;ve got a full cake!</p>
+
+<blockquote><p>insert cake image</p></blockquote>
 ]]></content>
   </entry>
   
