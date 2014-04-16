@@ -140,6 +140,7 @@ case class CommandFailure(msg: String) extends Reply
 val requestProcessor = someActor
 requestProcessor ! Command
 						</code></pre>
+						<span class="fragment fade-in">Woops! The message is a <code>Command.type</code></span>
 						<aside class="notes">
 							This is a very common error and will pass compilation without warning. Typed channels are an EXPERIMENTAL
 							feature in Akka 2.3-M2.
@@ -191,7 +192,7 @@ def await[T](future: Future[T]): T
 						</section>
 
 						<section>
-							Using the Play framework, let's define some boilerplate to illustrate the power of this macro
+							Suppose we are consuming a RESTful service with Play,
 							<pre><code data-trim contenteditable style="font-size: 18px; margin-top: 20px; background-color: #003333">
 val futureDOY: Future[Response] =
 WS.url("http://api.day-of-year/today").get
@@ -206,7 +207,7 @@ val date = “““(\d+)/(\d+)“““.r
 						</section>
 
 						<section>
-							Wouldn't this be nice?
+							The SIP proposes the following syntax improvement
 							<pre><code data-trim contenteditable style="font-size: 18px; margin-top: 20px; background-color: #003333">
 async {
   await(futureDOY).body match {
@@ -220,7 +221,7 @@ async {
 						</section>
 
 						<section>
-							Instead of this!
+							To clean up the following mess
 							<pre><code data-trim contenteditable style="font-size: 18px; margin-top: 20px; background-color: #003333">
 for { doyResponse <- futureDOY
       dayOfYear = doyResponse.body
@@ -248,7 +249,9 @@ for { doyResponse <- futureDOY
 
 
 
-
+				<!--
+						Macros in General
+				-->
 				<section>
 					<h2>EXPERIMENTAL</h2>
 					<h4>Tentatively scheduled stable for 2.12</h4>
@@ -288,6 +291,38 @@ for { doyResponse <- futureDOY
 						<h2>Quasiquotes</h2>
 						<p>def macros can be overwhelming and hard to explore</p>
 						<p>quasiquotes have <a href="http://den.sh/quasiquotes.html">fantastic documentation</a></p>
+					</section>
+
+					<section>
+						<h2>Minimal Example</h2>
+						<pre><code data-trim contenteditable style="font-size: 18px; margin-top: 20px; background-color: #003333">
+import scala.reflect.macros.blackbox.Context
+import scala.language.experimental.macros
+
+object HelloMacro {
+  def helloWorld = macro helloWorldImpl
+
+  def helloWorldImpl(c: Context): c.Expr[Any] = {
+    import c.universe._
+    c.Expr(q"""println("Hello World!")""")
+  } 
+}
+						</code></pre>						
+					</section>
+
+					<section>
+						<h4>Wait.. is that a</h4>
+						<h2>String Interpolator?</h2>
+					</section>
+
+					<section>
+						<h2>Construct and Deconstruct</h2>
+						<ul>
+							<li>q -> term trees</li>
+							<li>tq -> type trees</li>
+							<li>cq -> cases</li>
+							<li>pq -> patterns</li>
+						</ul>
 					</section>
 
 					<section>
@@ -342,24 +377,12 @@ q"class $name extends AnyRef { ..${body ++ newdefs} }"
 						<p>this sort of looks more familiar</p>
 					</section>
 
-					<section>
-						<h4>Wait.. are those</h4>
-						<h2>String Interpolators</h2>
-					</section>
-
-					<section>
-						<h2>Construct and Deconstruct</h2>
-						<ul>
-							<li>q -> term trees</li>
-							<li>tq -> type trees</li>
-							<li>cq -> cases</li>
-							<li>pq -> patterns</li>
-						</ul>
-					</section>
 				</section>
 
 
-
+				<!--
+						Tips and Tricks
+				-->
 				<section>
 					<section>
 						<h2>Tips and Tricks</h2>
@@ -426,7 +449,7 @@ package &lt;empty&gt; {
 }
 PackageDef(Ident(newTermName("&lt;empty&gt;")), List(ClassDef(Modifiers(), newTypeName("wrapper"), List(), Template(List(Select(Ident(scala), newTypeName("AnyRef"))), emptyValDef, List(DefDef(Modifiers(), nme.CONSTRUCTOR, List(), List(List()), TypeTree(), Block(List(Apply(Select(Super(This(tpnme.EMPTY), tpnme.EMPTY), nme.CONSTRUCTOR), List())), Literal(Constant(())))), Apply(Select(Ident(newTermName("xs")), newTermName("map")), List(Function(List(ValDef(Modifiers(PARAM), newTermName("x"), TypeTree(), EmptyTree)), Apply(Select(Ident(newTermName("x")), newTermName("$plus")), List(Literal(Constant(1))))))))))))
 						</code></pre>
-						<p>notice the snippet doesn't even get type checked! Links to the <a href="https://github.com/xeno-by/dotx/blob/2e1786c0496a16ea0ec1ab3b4a2581833427df8d/parse">parse</a> and <a href="https://github.com/xeno-by/dotx/blob/2e1786c0496a16ea0ec1ab3b4a2581833427df8d/adhoc-scalac">adhoc-scalac</a> scripts.</p>
+						<p>the snippet is not type checked! Grab the <a href="https://github.com/xeno-by/dotx/blob/2e1786c0496a16ea0ec1ab3b4a2581833427df8d/parse">parse</a> and <a href="https://github.com/xeno-by/dotx/blob/2e1786c0496a16ea0ec1ab3b4a2581833427df8d/adhoc-scalac">adhoc-scalac</a> scripts.</p>
 					</section>
 
 					<section>
