@@ -2,36 +2,36 @@
 <urlset xmlns='http://www.sitemaps.org/schemas/sitemap/0.9'>
     <url>
         <loc>http://tysonjh.com/blog/2014/01/18/hello-octopress/</loc>
-        <lastmod>2014-04-05T09:16:20-04:00</lastmod>
+        <lastmod>2014-04-16T16:44:26-04:00</lastmod>
     </url>
     <url>
         <loc>http://tysonjh.com/blog/2014/01/29/scala-macros-and-quasiquotes/</loc>
-        <lastmod>2014-04-05T09:16:20-04:00</lastmod>
+        <lastmod>2014-04-16T16:44:26-04:00</lastmod>
     </url>
     <url>
         <loc>
             http://tysonjh.com/blog/2014/02/09/scala-macros-accessing-case-class-parameters/
         </loc>
-        <lastmod>2014-04-05T09:16:20-04:00</lastmod>
+        <lastmod>2014-04-16T16:44:26-04:00</lastmod>
     </url>
     <url>
         <loc>http://tysonjh.com/blog/2014/03/08/scala-delayedinit-trait-explored/</loc>
-        <lastmod>2014-04-05T09:16:20-04:00</lastmod>
+        <lastmod>2014-04-16T16:44:26-04:00</lastmod>
     </url>
     <url>
         <loc>http://tysonjh.com/about/</loc>
-        <lastmod>2014-04-05T09:16:20-04:00</lastmod>
+        <lastmod>2014-04-16T16:44:26-04:00</lastmod>
     </url>
     <url>
         <loc>http://tysonjh.com/blog/archives/</loc>
-        <lastmod>2014-04-05T09:16:20-04:00</lastmod>
+        <lastmod>2014-04-16T16:44:26-04:00</lastmod>
     </url>
     <url>
         <loc>http://tysonjh.com/</loc>
-        <lastmod>2014-04-05T09:16:20-04:00</lastmod>
+        <lastmod>2014-04-16T16:44:26-04:00</lastmod>
     </url>
     <url>
         <loc>http://tysonjh.com/robots.txt</loc>
-        <lastmod>2014-04-05T09:16:20-04:00</lastmod>
+        <lastmod>2014-04-16T16:44:26-04:00</lastmod>
     </url>
 </urlset>
