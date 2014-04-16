@@ -287,7 +287,7 @@ for { doyResponse <- futureDOY
 						<h4>Where to start?</h4>
 						<h2>Quasiquotes</h2>
 						<p>def macros can be overwhelming and hard to explore</p>
-						<p>quasiquotes have fantastic documentation</p>
+						<p>quasiquotes have <a href="http://den.sh/quasiquotes.html">fantastic documentation</a></p>
 					</section>
 
 					<section>
@@ -387,6 +387,7 @@ scala> showCode(c)
 res0: String = class Cats
 						</code></pre>
 					</section>
+
 					<section>
 						<h2>showRaw</h2>
 						<p>alternative to showCode</p>
@@ -397,6 +398,7 @@ scala> println(showRaw(c))
 ClassDef(Modifiers(), TypeName("Cats"), List(), Template(List(Select(Ident(scala), TypeName("AnyRef"))), noSelfType, List(DefDef(Modifiers(), termNames.CONSTRUCTOR, List(), List(List()), TypeTree(), Block(List(pendingSuperCall), Literal(Constant(())))))))
 						</code></pre>
 					</section>
+
 					<section>
 						<h2>toolbox</h2>
 						<pre><code data-trim contenteditable style="font-size: 18px; margin-top: 20px; background-color: #003333">
@@ -406,6 +408,34 @@ scala> val result = compiledCode()
 compiled and run at runtime!
 result: Any = ()
 						</code></pre>
+					</section>
+
+					<section>
+						<h2>Eugene's parse/adhoc-scalac scripts</h2>
+						<pre><code data-trim contenteditable style="font-size: 18px; margin-top: 20px; background-color: #003333">
+parse 'for(x <- xs) yield x + 1'
+[[syntax trees at end of parser]]// Scala source: tmp_h0ply
+package <empty> {
+  class wrapper extends scala.AnyRef {
+    def <init>() = {
+      super.<init>();
+      ()
+    };
+    xs.map(((x) => x.$plus(1)))
+  }
+}
+PackageDef(Ident(newTermName("<empty>")), List(ClassDef(Modifiers(), newTypeName("wrapper"), List(), Template(List(Select(Ident(scala), newTypeName("AnyRef"))), emptyValDef, List(DefDef(Modifiers(), nme.CONSTRUCTOR, List(), List(List()), TypeTree(), Block(List(Apply(Select(Super(This(tpnme.EMPTY), tpnme.EMPTY), nme.CONSTRUCTOR), List())), Literal(Constant(())))), Apply(Select(Ident(newTermName("xs")), newTermName("map")), List(Function(List(ValDef(Modifiers(PARAM), newTermName("x"), TypeTree(), EmptyTree)), Apply(Select(Ident(newTermName("x")), newTermName("$plus")), List(Literal(Constant(1))))))))))))
+
+						</code></pre>
+						<p>notice the snippet doesn't even get type checked! Links to the <a href="https://github.com/xeno-by/dotx/blob/2e1786c0496a16ea0ec1ab3b4a2581833427df8d/parse">parse</a> and <a href="https://github.com/xeno-by/dotx/blob/2e1786c0496a16ea0ec1ab3b4a2581833427df8d/adhoc-scalac">adhoc-scalac</a> scripts.</p>
+					</section>
+
+					<section>
+						<h2>SBT show compiled code</h2>
+						<p>nice while working on simple macros</p>
+						<pre><code data-trim contenteditable style="font-size: 18px; margin-top: 20px; background-color: #003333">
+sbt> set scalacOptions in Compile += "-print"
+						</code></pre>						
 					</section>
 				</section>
 
