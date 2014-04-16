@@ -412,20 +412,19 @@ result: Any = ()
 
 					<section>
 						<h2>Eugene's parse/adhoc-scalac scripts</h2>
-						<pre><code data-trim contenteditable style="font-size: 18px; margin-top: 20px; background-color: #003333">
-parse 'for(x <- xs) yield x + 1'
+						<pre><code data-trim contenteditable style="font-size: 18px; margin-top: 20px; background-color: #003333">	
+parse 'for(x &lt;- xs) yield x + 1'
 [[syntax trees at end of parser]]// Scala source: tmp_h0ply
-package <empty> {
+package &lt;empty&gt; {
   class wrapper extends scala.AnyRef {
-    def <init>() = {
-      super.<init>();
+    def &lt;init&gt;() = {
+      super.&lt;init&gt;();
       ()
     };
-    xs.map(((x) => x.$plus(1)))
+    xs.map(((x) =&gt; x.$plus(1)))
   }
 }
-PackageDef(Ident(newTermName("<empty>")), List(ClassDef(Modifiers(), newTypeName("wrapper"), List(), Template(List(Select(Ident(scala), newTypeName("AnyRef"))), emptyValDef, List(DefDef(Modifiers(), nme.CONSTRUCTOR, List(), List(List()), TypeTree(), Block(List(Apply(Select(Super(This(tpnme.EMPTY), tpnme.EMPTY), nme.CONSTRUCTOR), List())), Literal(Constant(())))), Apply(Select(Ident(newTermName("xs")), newTermName("map")), List(Function(List(ValDef(Modifiers(PARAM), newTermName("x"), TypeTree(), EmptyTree)), Apply(Select(Ident(newTermName("x")), newTermName("$plus")), List(Literal(Constant(1))))))))))))
-
+PackageDef(Ident(newTermName("&lt;empty&gt;")), List(ClassDef(Modifiers(), newTypeName("wrapper"), List(), Template(List(Select(Ident(scala), newTypeName("AnyRef"))), emptyValDef, List(DefDef(Modifiers(), nme.CONSTRUCTOR, List(), List(List()), TypeTree(), Block(List(Apply(Select(Super(This(tpnme.EMPTY), tpnme.EMPTY), nme.CONSTRUCTOR), List())), Literal(Constant(())))), Apply(Select(Ident(newTermName("xs")), newTermName("map")), List(Function(List(ValDef(Modifiers(PARAM), newTermName("x"), TypeTree(), EmptyTree)), Apply(Select(Ident(newTermName("x")), newTermName("$plus")), List(Literal(Constant(1))))))))))))
 						</code></pre>
 						<p>notice the snippet doesn't even get type checked! Links to the <a href="https://github.com/xeno-by/dotx/blob/2e1786c0496a16ea0ec1ab3b4a2581833427df8d/parse">parse</a> and <a href="https://github.com/xeno-by/dotx/blob/2e1786c0496a16ea0ec1ab3b4a2581833427df8d/adhoc-scalac">adhoc-scalac</a> scripts.</p>
 					</section>
