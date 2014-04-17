@@ -307,7 +307,10 @@ object HelloMacro {
     c.Expr(q"""println("Hello World!")""")
   } 
 }
-						</code></pre>						
+						</code></pre>
+						<aside class="notes">
+							Macros that faithfully follow their type signatures are called blackbox macros as their implementations are irrelevant to understanding their behaviour (could be treated as black boxes). Macros that can’t have precise signatures in Scala’s type system are called whitebox macros (whitebox def macros do have signatures, but these signatures are only approximations).
+						</aside>				
 					</section>
 
 					<section>
@@ -475,6 +478,7 @@ sbt> set scalacOptions in Compile += "-print"
 						<li><a href="http://scalamacros.org/paperstalks/2013-12-02-WhatAreMacrosGoodFor.pdf">What Are Macros Good For</a> - E.Burmako</li>
 						<li><a href="http://den.sh/quasiquotes.html">Quasiquote Guide</a> - D.Shabalin</li>
 						<li><a href="http://letitcrash.com/post/40198993865/makkros-first-step-towards-typed-channels">Makkros: First step towards Typed Channels</a> - R.Kuhn</li>
+						<li><a href="http://meta.plasm.us/posts/2013/07/11/fake-type-providers-part-2/">Fake Type Providers</a> - T.Brown</li>
 					</ul>
 				</section>
 
