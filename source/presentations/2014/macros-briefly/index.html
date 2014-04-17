@@ -207,20 +207,6 @@ val date = “““(\d+)/(\d+)“““.r
 						</section>
 
 						<section>
-							The SIP proposes the following syntax improvement
-							<pre><code data-trim contenteditable style="font-size: 18px; margin-top: 20px; background-color: #003333">
-async {
-  await(futureDOY).body match {
-    case date(month, day) =>
-      Ok(s“It’s ${await(nameOfMonth(month.toInt))}!“)
-    case _ =>
-      NotFound(“Not a date, mate!“)
-  }
-}
-							</code></pre>
-						</section>
-
-						<section>
 							To clean up the following mess
 							<pre><code data-trim contenteditable style="font-size: 18px; margin-top: 20px; background-color: #003333">
 for { doyResponse <- futureDOY
@@ -245,9 +231,21 @@ for { doyResponse <- futureDOY
 								- finally, the use of for-yield might obscure the actual domain which is asynchronous computations with non-blocking awaits
 							</aside>
 						</section>
+
+						<section>
+							The SIP proposes the following syntax improvement
+							<pre><code data-trim contenteditable style="font-size: 18px; margin-top: 20px; background-color: #003333">
+async {
+  await(futureDOY).body match {
+    case date(month, day) =>
+      Ok(s“It’s ${await(nameOfMonth(month.toInt))}!“)
+    case _ =>
+      NotFound(“Not a date, mate!“)
+  }
+}
+							</code></pre>
 				</section>
-
-
+						</section>
 
 				<!--
 						Macros in General
@@ -295,6 +293,24 @@ for { doyResponse <- futureDOY
 
 					<section>
 						<h2>Minimal Example</h2>
+						<h4>def macros</h4>
+						<pre><code data-trim contenteditable style="font-size: 18px; margin-top: 20px; background-color: #003333">
+import scala.reflect.macros.blackbox.Context
+import scala.language.experimental.macros
+
+object HelloMacro {
+  def helloWorld = macro helloWorldImpl
+
+  def helloWorldImplDef(c: Context): c.Expr[Any] = {
+    import c.universe._
+    c.Expr[Any](Apply(Ident(TermName("println")), List(Literal(Constant("Hello World!")))))
+  }  
+}
+						</code></pre>
+					</section>
+					<section>
+						<h2>Minimal Example</h2>
+						<h4>quasiquotes</h4>
 						<pre><code data-trim contenteditable style="font-size: 18px; margin-top: 20px; background-color: #003333">
 import scala.reflect.macros.blackbox.Context
 import scala.language.experimental.macros
@@ -307,7 +323,7 @@ object HelloMacro {
     c.Expr(q"""println("Hello World!")""")
   } 
 }
-						</code></pre>
+						</code></pre>						
 						<aside class="notes">
 							Macros that faithfully follow their type signatures are called blackbox macros as their implementations are irrelevant to understanding their behaviour (could be treated as black boxes). Macros that can’t have precise signatures in Scala’s type system are called whitebox macros (whitebox def macros do have signatures, but these signatures are only approximations).
 						</aside>				
@@ -325,9 +341,10 @@ object HelloMacro {
 							<li>tq -> type trees</li>
 							<li>cq -> cases</li>
 							<li>pq -> patterns</li>
+							<li>fq -> loop enumerators</li>
 						</ul>
 					</section>
-
+<!-- Hello World example is easier to follow
 					<section>
 						<h4>from the docs</h4>
 						<h2>An Example</h2>
@@ -379,7 +396,7 @@ q"class $name extends AnyRef { ..${body ++ newdefs} }"
 						</code></pre>
 						<p>this sort of looks more familiar</p>
 					</section>
-
+-->
 				</section>
 
 
