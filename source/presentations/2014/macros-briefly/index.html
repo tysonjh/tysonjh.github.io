@@ -337,12 +337,23 @@ object HelloMacro {
 					<section>
 						<h2>Construct and Deconstruct</h2>
 						<ul>
-							<li>q -> term trees</li>
+							<li>q -> term trees (expr, def, import)</li>
 							<li>tq -> type trees</li>
 							<li>cq -> cases</li>
 							<li>pq -> patterns</li>
 							<li>fq -> loop enumerators</li>
 						</ul>
+						<pre><code data-trim contenteditable style="font-size: 18px; margin-top: 20px; background-color: #003333">
+scala> val x = q"""
+  val x: List[Int] = List(1, 2) match {
+    case List(a, b) => List(a + b)
+  }
+"""
+x: universe.ValDef =
+val x: List[Int] = List(1, 2) match {
+  case List((a @ _), (b @ _)) => List(a.$plus(b))
+}
+</code></pre>
 					</section>
 
 					<section>
