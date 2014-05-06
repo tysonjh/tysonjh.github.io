@@ -1,0 +1,394 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Spray Custom 404 - tysonjh</title>
+  <meta name="author" content="tysonjh">
+  
+  
+  <meta name="description" content="Creating a custom 404 page with Spray" />
+
+  
+  <meta name="keywords" content="Scala, Spray, Custom 404, Not Found, Rejections, Custom Rejections">
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://tysonjh.com/blog/2014/05/05/spray-custom-404">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="tysonjh" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Fjalla+One' rel='stylesheet' type='text/css'>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-30501057-2']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body   class="collapse-sidebar sidebar-footer" >
+  <header role="banner"><hgroup>
+  <h1><a href="/">tysonjh</a></h1>
+  
+    <h2>making mistakes everyday</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:tysonjh.com" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/presentations">Presentations</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/about/">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Spray Custom 404</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-05-05T19:34:04-04:00" pubdate data-updated="true">May 5<span>th</span>, 2014</time>
+        
+         | <a href="#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p><a href="http://spray.io">Spray</a> is a great web framework for slapping an app together quickly once you know your way around. Also it uses <a href="http://akka.io">Akka</a> and that&rsquo;s cool. Having a custom 404 page is standard on the interwebs these days, but it took me a bit of work to figure out how to implement it with Spray.</p>
+
+<h3>Goals</h3>
+
+<p>A simple app that has routes and serves static assets. If an asset can not be loaded, a custom 404 page should be returned.</p>
+
+<h3>Solution Highlights</h3>
+
+<p>Spray uses <a href="http://spray.io/documentation/1.2.1/spray-routing/key-concepts/directives/">directives</a> to express complex routing patterns elegantly. There are many <a href="http://spray.io/documentation/1.2.1/spray-routing/predefined-directives-alphabetically/">predefined directives</a> available which should satisfy most application needs. Directives are <a href="http://spray.io/documentation/1.2.1/spray-routing/key-concepts/directives/#composing-directives">composable</a> and <a href="http://spray.io/documentation/1.2.1/spray-routing/advanced-topics/custom-directives/">extensible</a>. They can be nested and/or chained together using the <code>~</code> operator, combined with <code>|</code> and <code>&amp;</code> operators &ndash; the possibilities are quite endless.</p>
+
+<p>To implement the custom 404 page, we will make use of the following predefined directives:</p>
+
+<ul>
+<li><code>path</code>: <em>to match the complete unmatched path</em></li>
+<li><code>respondWithStatus</code>: <em>to override the inner route status code</em></li>
+<li><code>getFromFile</code>: <em>to get the static asset from disk (or recover with the 404 template from disk)</em></li>
+<li><code>handleRejections</code>: <em>to handle the rejection when <code>getFromFile</code> can not find the static asset</em></li>
+</ul>
+
+
+<figure class='code'><figcaption><span>Defining a RejectionHandler</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='scala'><span class='line'><span class="c1">//import spray.routing.{ Directives, Route }</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">val</span> <span class="n">notFoundTemplate</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">File</span><span class="o">(</span><span class="s">&quot;public/404.html&quot;</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">val</span> <span class="n">assetNotFoundHandler</span> <span class="k">=</span> <span class="nc">RejectionHandler</span> <span class="o">{</span>
+</span><span class='line'>  <span class="k">case</span> <span class="nc">Nil</span> <span class="cm">/* secret code for path not found */</span> <span class="k">⇒</span>
+</span><span class='line'>    <span class="n">respondWithStatus</span><span class="o">(</span><span class="mi">404</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="n">getFromFile</span><span class="o">(</span><span class="n">notFoundTemplate</span><span class="o">)</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'><span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">def</span> <span class="n">staticAssets</span><span class="k">:</span> <span class="kt">Route</span> <span class="o">=</span> <span class="n">path</span><span class="o">(</span><span class="nc">Rest</span><span class="o">)</span> <span class="o">{</span> <span class="n">pathRest</span><span class="k">:</span> <span class="kt">String</span> <span class="k">⇒</span>
+</span><span class='line'>  <span class="kt">handleRejections</span><span class="o">(</span><span class="kt">assetNotFoundHandler</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="kt">getFromFile</span><span class="o">(</span><span class="kt">new</span> <span class="kt">File</span><span class="o">(</span><span class="kt">Conf.publicAssetDir</span> <span class="kt">+</span> <span class="kt">pathRest</span><span class="o">))</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The <code>notFoundTemplate</code> value is a plain old HTML file. The <code>staticAssets</code> method can be combined with other directives.</p>
+
+<figure class='code'><figcaption><span>Using the Static Assets Route</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='scala'><span class='line'><span class="k">val</span> <span class="n">routes</span><span class="k">:</span> <span class="kt">Route</span> <span class="o">=</span> <span class="o">{</span>
+</span><span class='line'>  <span class="n">path</span><span class="o">(</span><span class="s">&quot;helloworld&quot;</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="n">complete</span><span class="o">(</span><span class="s">&quot;Hello World!&quot;</span><span class="o">)</span>
+</span><span class='line'>  <span class="o">}</span> <span class="o">~</span>
+</span><span class='line'>  <span class="n">staticAssets</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The <code>staticAssets</code> route will happily load all of the <code>.js</code>, <code>.css</code>, <code>.html</code>, <code>.txt</code>, etc. files. In fact, I&rsquo;m using this exact approach with the <a href="https://angularjs.org/">angular</a> and <a href="http://getbootstrap.com/">bootstrap</a> frameworks in an app right now.</p>
+
+<p>Notice that the static asset directive is the last in the chain. This makes it the final attempt to resolve the URL before returning the 404. Quite a common approach in various sample projects and production solutions alike.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">tysonjh</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-05-05T19:34:04-04:00" pubdate data-updated="true">May 5<span>th</span>, 2014</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/scala/'>Scala</a>, <a class='category' href='/blog/categories/spray/'>Spray</a>, <a class='category' href='/blog/categories/web/'>Web</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://tysonjh.com/blog/2014/05/05/spray-custom-404/" data-via="tysonjh" data-counturl="http://tysonjh.com/blog/2014/05/05/spray-custom-404/" >Tweet</a>
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+    <div class="fb-like" data-send="true" data-width="450" data-show-faces="false"></div>
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2014/03/08/scala-delayedinit-trait-explored/" title="Previous Post: Scala DelayedInit Trait Explored">&laquo; Scala DelayedInit Trait Explored</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/05/05/spray-custom-404/">Spray Custom 404</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/03/08/scala-delayedinit-trait-explored/">Scala DelayedInit Trait Explored</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/02/09/scala-macros-accessing-case-class-parameters/">Scala Macros: accessing case class parameters</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/01/29/scala-macros-and-quasiquotes/">Feature Toggling using Scala Quasiquote Macros</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/01/18/hello-octopress/">Hello Octopress</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/tysonjh">@tysonjh</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'tysonjh',
+            count: 5,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+<section class="googleplus">
+  <h1>
+    <a href="https://plus.google.com/tyson.j.hamilton?rel=author">
+      <img src="http://www.google.com/images/icons/ui/gprofile_button-32.png" width="32" height="32">
+      Google+
+    </a>
+  </h1>
+</section>
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - tysonjh -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a> | Themed with <a href="https://github.com/lucaslew/whitespace">Whitespace</a></span>
+</p>
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'tysonjh';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://tysonjh.com/blog/2014/05/05/spray-custom-404/';
+        var disqus_url = 'http://tysonjh.com/blog/2014/05/05/spray-custom-404/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+<div id="fb-root"></div>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) {return;}
+  js = d.createElement(s); js.id = id; js.async = true;
+  js.src = "//connect.facebook.net/en_US/all.js#appId=212934732101925&xfbml=1";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));</script>
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

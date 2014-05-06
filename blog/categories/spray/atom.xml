@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Spray | tysonjh]]></title>
+  <link href="http://tysonjh.com/blog/categories/spray/atom.xml" rel="self"/>
+  <link href="http://tysonjh.com/"/>
+  <updated>2014-05-05T22:22:42-04:00</updated>
+  <id>http://tysonjh.com/</id>
+  <author>
+    <name><![CDATA[tysonjh]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Spray Custom 404]]></title>
+    <link href="http://tysonjh.com/blog/2014/05/05/spray-custom-404/"/>
+    <updated>2014-05-05T19:34:04-04:00</updated>
+    <id>http://tysonjh.com/blog/2014/05/05/spray-custom-404</id>
+    <content type="html"><![CDATA[<p><a href="http://spray.io">Spray</a> is a great web framework for slapping an app together quickly once you know your way around. Also it uses <a href="http://akka.io">Akka</a> and that&rsquo;s cool. Having a custom 404 page is standard on the interwebs these days, but it took me a bit of work to figure out how to implement it with Spray.</p>
+
+<h3>Goals</h3>
+
+<p>A simple app that has routes and serves static assets. If an asset can not be loaded, a custom 404 page should be returned.</p>
+
+<h3>Solution Highlights</h3>
+
+<p>Spray uses <a href="http://spray.io/documentation/1.2.1/spray-routing/key-concepts/directives/">directives</a> to express complex routing patterns elegantly. There are many <a href="http://spray.io/documentation/1.2.1/spray-routing/predefined-directives-alphabetically/">predefined directives</a> available which should satisfy most application needs. Directives are <a href="http://spray.io/documentation/1.2.1/spray-routing/key-concepts/directives/#composing-directives">composable</a> and <a href="http://spray.io/documentation/1.2.1/spray-routing/advanced-topics/custom-directives/">extensible</a>. They can be nested and/or chained together using the <code>~</code> operator, combined with <code>|</code> and <code>&amp;</code> operators &ndash; the possibilities are quite endless.</p>
+
+<p>To implement the custom 404 page, we will make use of the following predefined directives:</p>
+
+<ul>
+<li><code>path</code>: <em>to match the complete unmatched path</em></li>
+<li><code>respondWithStatus</code>: <em>to override the inner route status code</em></li>
+<li><code>getFromFile</code>: <em>to get the static asset from disk (or recover with the 404 template from disk)</em></li>
+<li><code>handleRejections</code>: <em>to handle the rejection when <code>getFromFile</code> can not find the static asset</em></li>
+</ul>
+
+
+<p>```scala Defining a RejectionHandler
+//import spray.routing.{ Directives, Route }</p>
+
+<p>val notFoundTemplate = new File(&ldquo;public/404.html&rdquo;)</p>
+
+<p>val assetNotFoundHandler = RejectionHandler {
+  case Nil /<em> secret code for path not found </em>/ ⇒</p>
+
+<pre><code>respondWithStatus(404) {
+  getFromFile(notFoundTemplate)
+}
+</code></pre>
+
+<p>}</p>
+
+<p>def staticAssets: Route = path(Rest) { pathRest: String ⇒
+  handleRejections(assetNotFoundHandler) {</p>
+
+<pre><code>getFromFile(new File(Conf.publicAssetDir + pathRest))
+</code></pre>
+
+<p>  }
+}
+```</p>
+
+<p>The <code>notFoundTemplate</code> value is a plain old HTML file. The <code>staticAssets</code> method can be combined with other directives.</p>
+
+<p>```scala Using the Static Assets Route
+val routes: Route = {
+  path(&ldquo;helloworld&rdquo;) {</p>
+
+<pre><code>complete("Hello World!")
+</code></pre>
+
+<p>  } ~
+  staticAssets
+}
+```</p>
+
+<p>The <code>staticAssets</code> route will happily load all of the <code>.js</code>, <code>.css</code>, <code>.html</code>, <code>.txt</code>, etc. files. In fact, I&rsquo;m using this exact approach with the <a href="https://angularjs.org/">angular</a> and <a href="http://getbootstrap.com/">bootstrap</a> frameworks in an app right now.</p>
+
+<p>Notice that the static asset directive is the last in the chain. This makes it the final attempt to resolve the URL before returning the 404. Quite a common approach in various sample projects and production solutions alike.</p>
+]]></content>
+  </entry>
+  
+</feed>

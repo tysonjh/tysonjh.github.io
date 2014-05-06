@@ -87,6 +87,118 @@
       
   <header>
     
+      <h1 class="entry-title"><a href="/blog/2014/05/05/spray-custom-404/">Spray Custom 404</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-05-05T19:34:04-04:00" pubdate data-updated="true">May 5<span>th</span>, 2014</time>
+        
+         | <a href="/blog/2014/05/05/spray-custom-404/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p><a href="http://spray.io">Spray</a> is a great web framework for slapping an app together quickly once you know your way around. Also it uses <a href="http://akka.io">Akka</a> and that&rsquo;s cool. Having a custom 404 page is standard on the interwebs these days, but it took me a bit of work to figure out how to implement it with Spray.</p>
+
+<h3>Goals</h3>
+
+<p>A simple app that has routes and serves static assets. If an asset can not be loaded, a custom 404 page should be returned.</p>
+
+<h3>Solution Highlights</h3>
+
+<p>Spray uses <a href="http://spray.io/documentation/1.2.1/spray-routing/key-concepts/directives/">directives</a> to express complex routing patterns elegantly. There are many <a href="http://spray.io/documentation/1.2.1/spray-routing/predefined-directives-alphabetically/">predefined directives</a> available which should satisfy most application needs. Directives are <a href="http://spray.io/documentation/1.2.1/spray-routing/key-concepts/directives/#composing-directives">composable</a> and <a href="http://spray.io/documentation/1.2.1/spray-routing/advanced-topics/custom-directives/">extensible</a>. They can be nested and/or chained together using the <code>~</code> operator, combined with <code>|</code> and <code>&amp;</code> operators &ndash; the possibilities are quite endless.</p>
+
+<p>To implement the custom 404 page, we will make use of the following predefined directives:</p>
+
+<ul>
+<li><code>path</code>: <em>to match the complete unmatched path</em></li>
+<li><code>respondWithStatus</code>: <em>to override the inner route status code</em></li>
+<li><code>getFromFile</code>: <em>to get the static asset from disk (or recover with the 404 template from disk)</em></li>
+<li><code>handleRejections</code>: <em>to handle the rejection when <code>getFromFile</code> can not find the static asset</em></li>
+</ul>
+
+
+<figure class='code'><figcaption><span>Defining a RejectionHandler</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='scala'><span class='line'><span class="c1">//import spray.routing.{ Directives, Route }</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">val</span> <span class="n">notFoundTemplate</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">File</span><span class="o">(</span><span class="s">&quot;public/404.html&quot;</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">val</span> <span class="n">assetNotFoundHandler</span> <span class="k">=</span> <span class="nc">RejectionHandler</span> <span class="o">{</span>
+</span><span class='line'>  <span class="k">case</span> <span class="nc">Nil</span> <span class="cm">/* secret code for path not found */</span> <span class="k">⇒</span>
+</span><span class='line'>    <span class="n">respondWithStatus</span><span class="o">(</span><span class="mi">404</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="n">getFromFile</span><span class="o">(</span><span class="n">notFoundTemplate</span><span class="o">)</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'><span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">def</span> <span class="n">staticAssets</span><span class="k">:</span> <span class="kt">Route</span> <span class="o">=</span> <span class="n">path</span><span class="o">(</span><span class="nc">Rest</span><span class="o">)</span> <span class="o">{</span> <span class="n">pathRest</span><span class="k">:</span> <span class="kt">String</span> <span class="k">⇒</span>
+</span><span class='line'>  <span class="kt">handleRejections</span><span class="o">(</span><span class="kt">assetNotFoundHandler</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="kt">getFromFile</span><span class="o">(</span><span class="kt">new</span> <span class="kt">File</span><span class="o">(</span><span class="kt">Conf.publicAssetDir</span> <span class="kt">+</span> <span class="kt">pathRest</span><span class="o">))</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The <code>notFoundTemplate</code> value is a plain old HTML file. The <code>staticAssets</code> method can be combined with other directives.</p>
+
+<figure class='code'><figcaption><span>Using the Static Assets Route</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='scala'><span class='line'><span class="k">val</span> <span class="n">routes</span><span class="k">:</span> <span class="kt">Route</span> <span class="o">=</span> <span class="o">{</span>
+</span><span class='line'>  <span class="n">path</span><span class="o">(</span><span class="s">&quot;helloworld&quot;</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="n">complete</span><span class="o">(</span><span class="s">&quot;Hello World!&quot;</span><span class="o">)</span>
+</span><span class='line'>  <span class="o">}</span> <span class="o">~</span>
+</span><span class='line'>  <span class="n">staticAssets</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The <code>staticAssets</code> route will happily load all of the <code>.js</code>, <code>.css</code>, <code>.html</code>, <code>.txt</code>, etc. files. In fact, I&rsquo;m using this exact approach with the <a href="https://angularjs.org/">angular</a> and <a href="http://getbootstrap.com/">bootstrap</a> frameworks in an app right now.</p>
+
+<p>Notice that the static asset directive is the last in the chain. This makes it the final attempt to resolve the URL before returning the 404. Quite a common approach in various sample projects and production solutions alike.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
       <h1 class="entry-title"><a href="/blog/2014/03/08/scala-delayedinit-trait-explored/">Scala DelayedInit Trait Explored</a></h1>
     
     
@@ -807,6 +919,10 @@ the <a href="https://github.com/tysonjh/dolphin">Dolphin</a> library for feature
     <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/05/05/spray-custom-404/">Spray Custom 404</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2014/03/08/scala-delayedinit-trait-explored/">Scala DelayedInit Trait Explored</a>
