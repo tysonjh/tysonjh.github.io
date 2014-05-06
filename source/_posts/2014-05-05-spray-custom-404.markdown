@@ -1,0 +1,60 @@
+---
+layout: post
+title: "Spray Custom 404"
+date: 2014-05-05 19:34:04 -0400
+comments: true
+categories: [Scala, Spray, Web]
+keywords: Scala, Spray, Custom 404, Not Found, Rejections, Custom Rejections
+description: "Creating a custom 404 page with Spray"
+---
+
+[Spray](http://spray.io) is a great web framework for slapping an app together quickly once you know your way around. Also it uses [Akka](http://akka.io) and that's cool. Having a custom 404 page is standard on the interwebs these days, but it took me a bit of work to figure out how to implement it with Spray.
+
+### Goals
+
+A simple app that has routes and serves static assets. If an asset can not be loaded, a custom 404 page should be returned.
+
+### Solution Highlights
+
+Spray uses [directives](http://spray.io/documentation/1.2.1/spray-routing/key-concepts/directives/) to express complex routing patterns elegantly. There are many [predefined directives](http://spray.io/documentation/1.2.1/spray-routing/predefined-directives-alphabetically/) available which should satisfy most application needs. Directives are [composable](http://spray.io/documentation/1.2.1/spray-routing/key-concepts/directives/#composing-directives) and [extensible](http://spray.io/documentation/1.2.1/spray-routing/advanced-topics/custom-directives/). They can be nested and/or chained together using the `~` operator, combined with `|` and `&` operators - the possibilities are quite endless.
+
+To implement the custom 404 page, we will make use of the following predefined directives:
+
+* `path`: _to match the complete unmatched path_
+* `respondWithStatus`: _to override the inner route status code_
+* `getFromFile`: _to get the static asset from disk (or recover with the 404 template from disk)_
+* `handleRejections`: _to handle the rejection when `getFromFile` can not find the static asset_
+
+```scala Defining a RejectionHandler
+//import spray.routing.{ Directives, Route }
+
+val notFoundTemplate = new File("public/404.html")
+
+val assetNotFoundHandler = RejectionHandler {
+  case Nil /* secret code for path not found */ ⇒
+    respondWithStatus(404) {
+      getFromFile(notFoundTemplate)
+    }
+}
+
+def staticAssets: Route = path(Rest) { pathRest: String ⇒
+  handleRejections(assetNotFoundHandler) {
+    getFromFile(new File(Conf.publicAssetDir + pathRest))
+  }
+}
+```
+
+The `notFoundTemplate` value is a plain old HTML file. The `staticAssets` method can be combined with other directives.
+
+```scala Using the Static Assets Route
+val routes: Route = {
+  path("helloworld") {
+    complete("Hello World!")
+  } ~
+  staticAssets
+}
+```
+
+The `staticAssets` route will happily load all of the `.js`, `.css`, `.html`, `.txt`, etc. files. In fact, I'm using this exact approach with the [angular](https://angularjs.org/) and [bootstrap](http://getbootstrap.com/) frameworks in an app right now. 
+
+Notice that the static asset directive is the last in the chain. This makes it the final attempt to resolve the URL before returning the 404. Quite a common approach in various sample projects and production solutions alike.
