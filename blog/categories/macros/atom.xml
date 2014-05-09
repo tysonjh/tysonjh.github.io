@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Macros | tysonjh]]></title>
+  <link href="http://tysonjh.github.io/blog/categories/macros/atom.xml" rel="self"/>
+  <link href="http://tysonjh.github.io/"/>
+  <updated>2014-03-10T20:27:33-04:00</updated>
+  <id>http://tysonjh.github.io/</id>
+  <author>
+    <name><![CDATA[tysonjh]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Scala Macros: accessing case class parameters]]></title>
+    <link href="http://tysonjh.github.io/blog/2014/02/09/scala-macros-accessing-case-class-parameters/"/>
+    <updated>2014-02-09T00:05:21-05:00</updated>
+    <id>http://tysonjh.github.io/blog/2014/02/09/scala-macros-accessing-case-class-parameters</id>
+    <content type="html"><![CDATA[<p>Gaining access to a case class' constructor parameters within a macro implementation was not obvious at first. One approach is
+ to make use of the <code>WeakTypeTag</code>. Consider the example macro implementation with the following signature,</p>
+
+<p><code>scala
+def macroImpl[A: c.WeakTypeTag](c: Context)
+</code></p>
+
+<p>To gain access to the <code>Type</code> of <code>A</code>,</p>
+
+<p><code>scala
+val tpe: Type = weakTypeOf[A]
+</code></p>
+
+<p>The trait <code>Type</code> has a method <code>declarations</code> that returns a <code>MemberScope</code> which is essentially an <code>Iterable[Symbol]</code> collection. The <code>Symbol</code> is of interest, for it contains useful information about anything in Scala that can be assigned a name.</p>
+
+<p><code>scala
+val decl: MemberScope  = tpe.declarations
+</code></p>
+
+<p>A simple <code>collect</code> and the right partial function and presto,</p>
+
+<p><code>scala
+val params: Iterable[Name] = decl.collect {
+  case param if param.isMethod &amp;&amp; param.asMethod.isCaseAccessor =&gt; field.name
+}
+</code></p>
+
+<p><code>params</code> contains the iterable collection of the case class parameter names.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Feature Toggling using Scala Quasiquote Macros]]></title>
+    <link href="http://tysonjh.github.io/blog/2014/01/29/scala-macros-and-quasiquotes/"/>
+    <updated>2014-01-29T02:36:36-05:00</updated>
+    <id>http://tysonjh.github.io/blog/2014/01/29/scala-macros-and-quasiquotes</id>
+    <content type="html"><![CDATA[<p>It&rsquo;s tough to dream up reasons to use macros in Scala. When our team began considering feature toggling
+to avoid experiencing another merging nightmare, it seemed like an excellent use case for a macro. A feature
+toggle is simply a construct that wraps a block of code, executing it if the feature is enabled.
+It is also referred to as kill switching, feature flipping, etc. If you are interested on learning more, check out
+<a href="http://martinfowler.com/bliki/FeatureToggle.html">this article</a> by Martin Fowler. According to Fowler&rsquo;s article
+the toggles we will be supporting are <em>business toggles</em>. Here is the basic idea,</p>
+
+<p>```scala Toggle Flip Pseudocode</p>
+
+<pre><code>if(featureEnabled) {
+    doFeatureStuff()
+} else {
+    doNotDoFeatureStuff()
+}
+</code></pre>
+
+<p>```</p>
+
+<p>Scala macros are great for generating code, so it should be a simple matter to generate the conditional wrapper
+around a feature block.</p>
+
+<h3>Goals</h3>
+
+<ol>
+<li>Macro is simple to use</li>
+<li>Macro wraps feature code with a conditional</li>
+<li>Macro boolean condition implementation is extensible</li>
+</ol>
+
+
+<p>The third point is to facilitate different mechanisms for querying a feature&rsquo;s toggle state. The first use case
+for this feature will be writing hard wired scenarios of the boolean condition for testing purposes. Already I
+am working on a Redis backed boolean conditional that polls periodically for changes in feature flags.</p>
+
+<h3>Macros</h3>
+
+<p>Jumping right into the coding turned out to be the wrong approach. Macro programming in Scala is tough. It requires
+an intimate knowledge of how the AST is built and the symbols used. The documentation scratches the surface but leaves many
+questions unanswered. Finding examples online helped but I still struggled to massage them into a workable solution. Furthermore the
+examples I found used a lot of deprecated methods.</p>
+
+<p>I&rsquo;m not going to bother writing about directly manipulating the AST to create macros in Scala. At the end of
+this post exists a link section, in it you will find some great articles and examples of manipulating the AST.
+We are going to take a look at using <em>quasiquotes</em>.</p>
+
+<h3>Quasiquotes</h3>
+
+<p>Shipping with Scala 2.11 but supported in 2.10 with the <a href="http://docs.scala-lang.org/overviews/macros/paradise.html">macro paradise</a>
+plugin is <a href="http://docs.scala-lang.org/overviews/macros/quasiquotes.html">quasiquotes</a>. The basic idea is that they allow macros
+to be written similar to normal Scala code. Quasiquotes use the familiar concept of
+<a href="http://docs.scala-lang.org/overviews/core/string-interpolation.html">string interpolation</a>. <em>If you are new
+to writing macros start with quasiquotes!</em></p>
+
+<p>There is an excellent <a href="https://github.com/scalamacros/sbt-example-paradise">sbt-example-paradise</a> repository on github that will
+help get started.</p>
+
+<h4>Define the macro</h4>
+
+<p>```scala Flipper Macro Definition <a href="https://github.com/tysonjh/dolphin/blob/master/src/main/scala/Dolphin.scala">https://github.com/tysonjh/dolphin/blob/master/src/main/scala/Dolphin.scala</a> Source File
+trait Dolphin {
+  def flipper<a href="featureName:%20String,%20config:%20QueryableConfig">T</a></p>
+
+<pre><code>            (fn: =&gt; T): Unit = macro DolphinMacro.flipperImpl[T]
+</code></pre>
+
+<p> }
+```</p>
+
+<p>Nothing too magical happening here, the <code>macro</code> keyword is followed by the name of the static macro implementation method.</p>
+
+<h4>Implement the macro</h4>
+
+<p>```scala Flipper Macro Implementation <a href="https://github.com/tysonjh/dolphin/blob/master/src/main/scala/Dolphin.scala">https://github.com/tysonjh/dolphin/blob/master/src/main/scala/Dolphin.scala</a> Source File
+object DolphinMacro {
+  def flipperImpl<a href="c:%20Context">T</a></p>
+
+<pre><code>                (featureName: c.Expr[String],
+                 config: c.Expr[QueryableConfig])
+                (fn: c.Expr[T]): c.Expr[Unit] = {
+import c.universe._
+val result = {
+  q"""
+    if($config.isFeatureOn($featureName)) {
+      $fn
+    } else {}
+  """
+}
+c.Expr[Unit](result)
+</code></pre>
+
+<p>  }
+}
+```</p>
+
+<p>This represents the implementation of the macro using quasiquotes. The import of <code>c.universe._</code> is common in most
+macro definitions. It provides many useful methods, for us it provides the <code>q</code> string interpolator on <em>line 8</em>.
+This is the start of the quasiquote. Appreciate how much it looks like plain old scala, compare it to any
+AST constructions on the <a href="http://docs.scala-lang.org/overviews/macros/overview.html">macro overview</a> page on the
+Scala macro documentation to understand how <em>awesome</em> this is.</p>
+
+<p>Conceptually we are printing out the symbols that construct the desired outcome and letting the macro paradise
+plugin handle the rest of the heavy lifting. Much easier to read isn&rsquo;t it? Compare it to the <code>showRaw</code> output of the
+AST we would need to build without quasiquotes in <code>res0</code>:</p>
+
+<p>```scala The desired AST
+scala> import scala.reflect.runtime.{universe => u}
+import scala.reflect.runtime.{universe=>u}</p>
+
+<p>scala> def flipper(featureEnabled: Boolean)(doFeatureStuff: => Unit)(doNotDoFeatureStuff: => Unit) = {</p>
+
+<pre><code> | if(featureEnabled){ doFeatureStuff }
+ | else doNotDoFeatureStuff
+ | }
+</code></pre>
+
+<p>flipper: (featureEnabled: Boolean)(doFeatureStuff: => Unit)(doNotDoFeatureStuff: => Unit)Unit</p>
+
+<p>scala> val expr = u reify (flipper _)
+expr: reflect.runtime.universe.Expr[Boolean => ((=> Unit) => ((=> Unit) => Unit))] =
+Expr[Boolean => ((=> Unit) => ((=> Unit) => Unit))] ({((featureEnabled) => ((doFeatureStuff) => ((doNotDoFeatureStuff) => $read.flipper(featureEnabled)(doFeatureStuff)(doNotDoFeatureStuff))))})</p>
+
+<p>scala> u showRaw expr.tree
+res0: String = Block(List(), Function(List(ValDef(Modifiers(PARAM | SYNTHETIC), newTermName(&ldquo;featureEnabled&rdquo;), TypeTree(), EmptyTree)), Function(List(ValDef(Modifiers(PARAM | SYNTHETIC), newTermName(&ldquo;doFeatureStuff&rdquo;), TypeTree(), EmptyTree)), Function(List(ValDef(Modifiers(PARAM | SYNTHETIC), newTermName(&ldquo;doNotDoFeatureStuff&rdquo;), TypeTree(), EmptyTree)), Apply(Apply(Apply(Select(Select(Select(Ident($line7.$read), newTermName(&ldquo;$iw&rdquo;)), newTermName(&ldquo;$iw&rdquo;)), newTermName(&ldquo;flipper&rdquo;)), List(Ident(newTermName(&ldquo;featureEnabled&rdquo;)))), List(Ident(newTermName(&ldquo;doFeatureStuff&rdquo;)))), List(Ident(newTermName(&ldquo;doNotDoFeatureStuff&rdquo;))))))))
+```</p>
+
+<p>A more accurate way according to Imran Rashid&rsquo;s great post on <a href="http://imranrashid.com/posts/learning-scala-macros/">Learning Scala Macros</a> is to let the
+scalac compiler do it for you (below). Though I still prefer quasiquotes to this!</p>
+
+<p><code>scala
+scalac -Xplugin macro-paradise_2.10.2-2.0.0-SNAPSHOT.jar -deprecation -Xprint:parser -Ystop-after:parser -Yshow-trees-compact *.scala
+</code></p>
+
+<h4>Test the macro</h4>
+
+<p>```scala Flipper Macro Tests <a href="https://github.com/tysonjh/dolphin/blob/master/src/test/scala/DolphinSpec.scala">https://github.com/tysonjh/dolphin/blob/master/src/test/scala/DolphinSpec.scala</a> Source File
+class DolphinSpec extends FunSpec with Dolphin {
+  def featureAlwaysOnConfig = new QueryableConfig {</p>
+
+<pre><code>def isFeatureOn(name: String): Boolean = true
+</code></pre>
+
+<p>  }</p>
+
+<p>  def featureAlwaysOffConfig = new QueryableConfig {</p>
+
+<pre><code>def isFeatureOn(name: String): Boolean = false
+</code></pre>
+
+<p>  }</p>
+
+<p>  describe(&ldquo;Flipper&rdquo;) {</p>
+
+<pre><code>it("should execute function if feature is on"){
+  var cnt = 0
+  flipper("a", featureAlwaysOnConfig){cnt = cnt + 1}
+  assert(cnt == 1)
+}
+
+it("should not execute function if feature is off"){
+  var cnt = 0
+  flipper("a", featureAlwaysOffConfig){cnt = cnt + 1}
+  assert(cnt == 0)
+}
+</code></pre>
+
+<p>  }
+}     <br/>
+```</p>
+
+<p>This is how the macro can be tested, again nothing special here. An interesting detail to note is that in the
+macro definition we have a call by name parameter <code>fn: =&gt; T</code>, but in this implementation of the macro we have
+the parameter <code>fn: c.Expr[T]</code> which appears to be call by value. The tests clearly show that the call by name
+parameter is only evaluated by name. Attempting to change the implementation to <code>fn: c.Expr[=&gt; T]</code> or <code>fn: =&gt; c.Expr[T]</code>
+causes a compilation error.</p>
+
+<p>The limitation is that one may only inline <code>fn</code> and not invoke it, at least until
+Scala 2.11 where <code>fn: c.Tree</code> may be used as the implementation parameter (<a href="https://issues.scala-lang.org/browse/SI-5778">see here</a>).</p>
+
+<h3>Summary</h3>
+
+<p>Quasiquotes are a welcomed addition to the macro scene. They make writing macros more accessible by eliminating the
+necessity for deep AST knowledge before one gets started. The code in this post is part of
+the <a href="https://github.com/tysonjh/dolphin">Dolphin</a> library for feature toggling in Scala.</p>
+
+<h3>Links</h3>
+
+<ul>
+<li><a href="http://www.scottlogic.com/blog/2013/06/05/scala-macros-part-1.html">Adventures with Scala Macros</a></li>
+<li><a href="https://gist.github.com/travisbrown/4234441">Simple macro-based scala example</a></li>
+<li><a href="http://docs.scala-lang.org/overviews/macros/overview.html">Scala Macros</a></li>
+<li><a href="http://docs.scala-lang.org/overviews/macros/quasiquotes.html">Quasiquotes</a></li>
+<li><a href="http://stackoverflow.com/questions/11055210/whats-the-easiest-way-to-use-reify-get-an-ast-of-an-expression-in-scala">Use reify to get AST of expression</a></li>
+<li><a href="http://imranrashid.com/posts/learning-scala-macros/">Learning Scala Macros</a></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+</feed>
